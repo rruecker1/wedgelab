@@ -42,11 +42,11 @@ const PORT = process.env.PORT || 3000;
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'Public')));
 
 // ── Root redirect ─────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'Public', 'index.html'));
 });
 
 // ── Health check ──────────────────────────────────────────────
@@ -301,11 +301,20 @@ app.get('/api/shortgame/stats', async (req, res) => {
     const avgProx = avg(rounds.map(r => Number(r.avg_proximity_ft)));
     const avgPutt = avg(rounds.map(r => Number(r.avg_putts)));
 
-    // Miss direction breakdown
+    // Miss direction breakdown — total
     const missCounts = {};
     shots.forEach(s => {
       const dir = s.miss_direction || 'on_target';
       missCounts[dir] = (missCounts[dir] || 0) + 1;
+    });
+
+    // Miss direction breakdown — per shot type
+    const missByType = {};
+    shots.forEach(s => {
+      const type = s.shot_type;
+      const dir  = s.miss_direction || 'on_target';
+      if (!missByType[type]) missByType[type] = {};
+      missByType[type][dir] = (missByType[type][dir] || 0) + 1;
     });
 
     // U&D breakdown by shot type + pin
@@ -334,6 +343,7 @@ app.get('/api/shortgame/stats', async (req, res) => {
       avg_proximity_ft: parseFloat(avgProx.toFixed(1)),
       avg_putts:        parseFloat(avgPutt.toFixed(2)),
       miss_breakdown:   missCounts,
+      miss_by_type:     missByType,
       ud_grid:          udGrid,
     });
 
@@ -570,7 +580,7 @@ function filterByTimeframe(rows, timeframe, dateField) {
 // ── Start server ──────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`WedgeLab running on port ${PORT}`);
-  if (!process.env.DROPBOX_APP_KEY) {
-    console.warn('⚠  DROPBOX_APP_KEY not set — Dropbox calls will fail');
+  if (!process.env.DROPBOX_TOKEN) {
+    console.warn('⚠  DROPBOX_TOKEN not set — Dropbox calls will fail');
   }
 });
