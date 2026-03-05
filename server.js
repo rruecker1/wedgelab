@@ -570,7 +570,7 @@ function filterByTimeframe(rows, timeframe, dateField) {
 // ── Start server ──────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`WedgeLab running on port ${PORT}`);
-  if (!process.env.DROPBOX_TOKEN) {
-    console.warn('⚠  DROPBOX_TOKEN not set — Dropbox calls will fail');
+  if (!process.env.DROPBOX_APP_KEY) {
+    console.warn('⚠  DROPBOX_APP_KEY not set — Dropbox calls will fail');
   }
 });
