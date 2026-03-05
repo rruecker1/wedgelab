@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Short Game Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body { min-height: 100%; background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); -webkit-text-size-adjust: 100%; }
+  body { display: flex; flex-direction: column; padding: env(safe-area-inset-top, 20px) 22px env(safe-area-inset-bottom, 32px); max-width: 430px; margin: 0 auto; }
+
+  /* ── Header — matches distance-home exactly ── */
+  .header { padding: 12px 0 24px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .app-name { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; letter-spacing: 0.04em; }
+  .app-sub  { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .header-right { display: flex; gap: 10px; align-items: center; padding-bottom: 4px; }
+  .nav-icon-btn { background: none; border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+  /* ── Snapshot strip ── */
+  .snapshot { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 0; margin-bottom: 24px; }
+  .snap-item { flex: 1; text-align: center; position: relative; }
+  .snap-item + .snap-item::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+  .snap-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; }
+  .snap-val.pos { color: var(--green); }
+  .snap-val.neg { color: var(--red); }
+  .snap-val.neu { color: var(--text); }
+  .snap-lbl { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+
+  /* ── Section header ── */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+
+  /* ── Test cards — matches distance-home exactly ── */
+  .test-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+  .test-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 16px 18px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .test-card:active { background: var(--surface2); }
+  .test-card.selected { border-color: var(--green-dim); background: var(--surface2); }
+  .test-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .test-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .test-name-default::after { content: 'DEFAULT'; font-family: 'DM Mono', monospace; font-size: 7px; letter-spacing: 0.1em; color: var(--green); border: 1px solid rgba(61,220,132,0.3); border-radius: 4px; padding: 1px 5px; margin-left: 8px; vertical-align: middle; position: relative; top: -1px; }
+  .test-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.04em; }
+  .test-count { text-align: right; }
+  .test-count-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: var(--muted); transition: color 0.2s; }
+  .test-card.selected .test-count-val { color: var(--green); }
+  .test-count-lbl { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
+
+  /* Shot type pills — muted, no color, same as dist-pills */
+  .shot-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .shot-pill {
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.04em;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 20px; padding: 3px 8px;
+  }
+  .test-card.selected .shot-pill { border-color: rgba(61,220,132,0.2); }
+
+  /* ── Order toggle + Start ── */
+  .card-actions { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: none; flex-direction: column; gap: 10px; }
+  .test-card.selected .card-actions { display: flex; }
+
+  .order-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+  .order-btn { flex: 1; padding: 7px; border-radius: 8px; border: none; background: none; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.05em; cursor: pointer; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
+  .order-btn.active { background: var(--surface2); color: var(--green); outline: 1px solid var(--green-dim); }
+
+  .start-btn { width: 100%; padding: 16px; background: var(--green); border: none; border-radius: 14px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 20px rgba(61,220,132,0.22); -webkit-tap-highlight-color: transparent; transition: opacity 0.15s; }
+  .start-btn:active { opacity: 0.85; }
+
+  /* ── Bottom nav — matches distance-home ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: auto; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="app-sub">Short Game Lab</div>
+      <div class="app-name">Practice</div>
+    </div>
+
+  </div>
+
+  <!-- Snapshot strip -->
+  <div class="snapshot">
+    <div class="snap-item">
+      <div class="snap-val neu" id="snap-ud">—</div>
+      <div class="snap-lbl">Best U&D%</div>
+    </div>
+    <div class="snap-item">
+      <div class="snap-val neu" id="snap-rounds">0</div>
+      <div class="snap-lbl">Rounds</div>
+    </div>
+    <div class="snap-item">
+      <div class="snap-val neu" id="snap-proximity">—</div>
+      <div class="snap-lbl">Avg Proximity</div>
+    </div>
+  </div>
+
+  <!-- Test list -->
+  <div class="section-head">
+    <span class="section-title">Select a Challenge</span>
+  </div>
+  <div class="test-list" id="test-list"></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item active" href="challenge-setup.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item" href="results-history.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+  </div>
+
+<script>
+'use strict';
+
+const PRESETS = [
+  {
+    id: 'full', name: 'Full Round', isDefault: true,
+    desc: '6 shot types · short, middle & long pin', shots: 18,
+    pills: ['Fairway Chip','Short Pitch','Long Pitch','Rough Chip','Rough Pitch','Bunker'],
+  },
+  {
+    id: 'chip', name: 'Chip Master',
+    desc: '2 shot types · short & middle pin', shots: 12,
+    pills: ['Fairway Chip','Rough Chip'],
+  },
+  {
+    id: 'sand', name: 'Sand Save',
+    desc: 'Bunker only · short, middle & long pin', shots: 9,
+    pills: ['Bunker'],
+  },
+  {
+    id: 'scoring', name: 'Scoring Zone',
+    desc: 'Pitching only · short, middle & long pin', shots: 12,
+    pills: ['Short Pitch','Long Pitch'],
+  },
+  {
+    id: 'pressure', name: 'Short Sided',
+    desc: 'All shot types · short pin only', shots: 10,
+    pills: ['Fairway Chip','Short Pitch','Rough Chip','Rough Pitch','Bunker'],
+  },
+];
+
+let selectedId    = 'full';
+let selectedOrder = {};
+
+function renderPresets() {
+  const list = document.getElementById('test-list');
+  list.innerHTML = PRESETS.map(p => {
+    const isSelected = p.id === selectedId;
+    const order      = selectedOrder[p.id] || 'sequential';
+    const pills      = p.pills.map(l => `<span class="shot-pill">${l}</span>`).join('');
+    return `
+      <div class="test-card ${isSelected ? 'selected' : ''}" id="card-${p.id}" onclick="selectPreset('${p.id}')">
+        <div class="test-card-top">
+          <div>
+            <div class="test-name ${p.isDefault ? 'test-name-default' : ''}">${p.name}</div>
+            <div class="test-meta">${p.desc}</div>
+          </div>
+          <div class="test-count">
+            <div class="test-count-val">${p.shots}</div>
+            <div class="test-count-lbl">Shots</div>
+          </div>
+        </div>
+        <div class="shot-pills">${pills}</div>
+        <div class="card-actions">
+          <div class="order-toggle">
+            <button class="order-btn ${order === 'sequential' ? 'active' : ''}" onclick="setOrder(event,'${p.id}','sequential')">Sequential</button>
+            <button class="order-btn ${order === 'random'     ? 'active' : ''}" onclick="setOrder(event,'${p.id}','random')">Random</button>
+          </div>
+          <button class="start-btn" onclick="startChallenge(event,'${p.id}')">Start Challenge</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectPreset(id) {
+  if (selectedId === id) return;
+  const prev = document.getElementById('card-' + selectedId);
+  if (prev) prev.classList.remove('selected');
+  selectedId = id;
+  const card = document.getElementById('card-' + id);
+  if (card) {
+    card.classList.add('selected');
+    setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+  }
+  if (navigator.vibrate) navigator.vibrate(6);
+}
+
+function setOrder(e, presetId, val) {
+  e.stopPropagation();
+  selectedOrder[presetId] = val;
+  const card = document.getElementById('card-' + presetId);
+  card.querySelectorAll('.order-btn').forEach(btn => {
+    const isSeq = btn.textContent.trim() === 'Sequential';
+    btn.classList.toggle('active', val === 'sequential' ? isSeq : !isSeq);
+  });
+  if (navigator.vibrate) navigator.vibrate(6);
+}
+
+function startChallenge(e, presetId) {
+  e.stopPropagation();
+  const order = selectedOrder[presetId] || 'sequential';
+  const btn   = document.querySelector(`#card-${presetId} .start-btn`);
+  btn.textContent   = 'Building...';
+  btn.style.opacity = '0.75';
+  setTimeout(() => {
+    window.location.href = `shot-entry.html?preset=${presetId}&order=${order}`;
+  }, 400);
+}
+
+// Load snapshot stats
+async function loadStats() {
+  try {
+    const res   = await fetch('/api/shortgame/history').then(r => r.json());
+    const rounds = res.rounds || [];
+    if (!rounds.length) return;
+    document.getElementById('snap-rounds').textContent = rounds.length;
+    const bests = rounds.map(r => r.up_and_down_pct).filter(v => v != null);
+    if (bests.length) document.getElementById('snap-ud').textContent = Math.max(...bests) + '%';
+    const proxs = rounds.map(r => r.avg_proximity_ft).filter(v => v != null);
+    if (proxs.length) {
+      const avg = proxs.reduce((a,b) => a+b, 0) / proxs.length;
+      document.getElementById('snap-proximity').textContent = avg.toFixed(1) + "'";
+    }
+  } catch(e) { /* silently fail */ }
+}
+
+renderPresets();
+loadStats();
+</script>
+</body>
+</html>

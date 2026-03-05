@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Short Game Lab — Round Results</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0e1a12;
+    --surface:  #162019;
+    --surface2: #1e2d22;
+    --green:    #3ddc84;
+    --green-dim:#2a9e5e;
+    --yellow:   #f5c842;
+    --red:      #e05252;
+    --text:     #e8f0ea;
+    --muted:    #6b856f;
+    --border:   #263329;
+  }
+
+  html, body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 16px);
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0 20px;
+  }
+
+  .topbar-wordmark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .topbar-wordmark span { color: var(--green); }
+
+  .topbar-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 11px;
+    border-radius: 20px;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── HERO — dual scorecard ── */
+  .hero {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0 20px;
+  }
+
+  .hero-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .hero-card.pb::before { background: var(--green); }
+
+  .hero-card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .hero-card-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  .hero-card-val .unit {
+    font-size: 26px;
+    color: var(--muted);
+    margin-left: 1px;
+  }
+
+  .hero-card-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .hero-pb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(61,220,132,0.3);
+    background: rgba(61,220,132,0.06);
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+    color: var(--green);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+
+  .hero-prev-best {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    align-self: flex-start;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 20px 0 8px;
+  }
+
+  /* ── STAT STRIP ── */
+  .stat-strip {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .stat-cell {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-cell:last-child { border-right: none; }
+
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-val.good { color: var(--green); }
+  .stat-val.warn { color: var(--yellow); }
+  .stat-val.bad  { color: var(--red); }
+
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ── UP & DOWN BY SHOT TYPE ── */
+  .shot-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .shot-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .shot-row-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .shot-row-bar-wrap {
+    flex: 2;
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .shot-row-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+  }
+
+  .shot-row-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    width: 42px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── MISS COMPASS ── */
+  .miss-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .miss-compass { flex-shrink: 0; }
+
+  .miss-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .miss-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .miss-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .miss-legend-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .miss-legend-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  /* ── MISS FILTER TABS ── */
+  .miss-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .miss-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .miss-tab.active {
+    border-color: var(--green-dim);
+    color: var(--green);
+    background: rgba(61,220,132,0.06);
+  }
+
+  /* ── SHOT LOG ── */
+  .shot-log {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .log-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .log-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .log-pin-inline {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-left: 5px;
+  }
+
+  .log-prox {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text);
+    width: 34px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .log-putts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .log-result {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .log-result.green  { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .log-result.yellow { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+  .log-result.red    { background: var(--red); }
+
+  /* log header row */
+  .log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 4px;
+  }
+  .log-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── BOTTOM ACTIONS ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: 24px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* ── DIVIDER ── */
+  .rule {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0 0;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim { animation: fadeUp 0.35s ease both; }
+  .anim-1 { animation-delay: 0.04s; }
+  .anim-2 { animation-delay: 0.10s; }
+  .anim-3 { animation-delay: 0.16s; }
+  .anim-4 { animation-delay: 0.22s; }
+  .anim-5 { animation-delay: 0.28s; }
+  .anim-6 { animation-delay: 0.34s; }
+  .anim-7 { animation-delay: 0.40s; }
+</style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar anim anim-1">
+    <div class="topbar-wordmark">Wedge<span>Lab</span></div>
+  </div>
+
+  <!-- HERO — dual scorecard -->
+  <div class="hero anim anim-2">
+
+    <!-- Up & Down % -->
+    <div class="hero-card pb">
+      <div class="hero-card-label">Up &amp; Down %</div>
+      <div class="hero-card-val">—</div>
+      <div class="hero-card-sub">—</div>
+      <div class="hero-pb-badge">⛳ Personal Best</div>
+    </div>
+
+    <!-- Total Strokes -->
+    <div class="hero-card">
+      <div class="hero-card-label">Total Strokes</div>
+      <div class="hero-card-val">—</div>
+      <div class="hero-card-sub">—</div>
+      <div class="hero-prev-best"></div>
+    </div>
+
+  </div>
+
+  <!-- KEY STATS -->
+  <div class="section-label anim anim-2">Key Stats</div>
+  <div class="stat-strip anim anim-2">
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-ud">—</div>
+      <div class="stat-lbl">Up &amp; Down</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-prox">—</div>
+      <div class="stat-lbl">Avg Prox</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-putts">—</div>
+      <div class="stat-lbl">Avg Putts</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-strokes">—</div>
+      <div class="stat-lbl">Strokes</div>
+    </div>
+  </div>
+
+  <!-- UP & DOWN BY SHOT TYPE -->
+  <div class="section-label anim anim-3">Up &amp; Down by Shot Type</div>
+  <div class="shot-rows anim anim-3"></div>
+
+  <!-- MISS DIRECTION -->
+  <div class="section-label anim anim-4">Miss Direction</div>
+
+  <!-- Filter tabs -->
+  <div class="miss-tabs anim anim-4" id="miss-tabs"></div>
+
+  <div class="miss-wrap anim anim-4">
+    <div class="miss-compass">
+      <svg id="miss-svg" width="130" height="130" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="140" cy="140" r="131" fill="#0e1a12"/>
+        <path id="mw-long"        d="M90.25,19.9 A130,130 0 0,1 189.75,19.9 L159.9,91.96 A52,52 0 0,0 120.1,91.96 Z"        stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-long-right"  d="M189.75,19.9 A130,130 0 0,1 260.1,90.25 L188.04,120.1 A52,52 0 0,0 159.9,91.96 Z"   stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-right"       d="M260.1,90.25 A130,130 0 0,1 260.1,189.75 L188.04,159.9 A52,52 0 0,0 188.04,120.1 Z" stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-short-right" d="M260.1,189.75 A130,130 0 0,1 189.75,260.1 L159.9,188.04 A52,52 0 0,0 188.04,159.9 Z" stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-short"       d="M189.75,260.1 A130,130 0 0,1 90.25,260.1 L120.1,188.04 A52,52 0 0,0 159.9,188.04 Z"  stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-short-left"  d="M90.25,260.1 A130,130 0 0,1 19.9,189.75 L91.96,159.9 A52,52 0 0,0 120.1,188.04 Z"   stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-left"        d="M19.9,189.75 A130,130 0 0,1 19.9,90.25 L91.96,120.1 A52,52 0 0,0 91.96,159.9 Z"      stroke="#0e1a12" stroke-width="2"/>
+        <path id="mw-long-left"   d="M19.9,90.25 A130,130 0 0,1 90.25,19.9 L120.1,91.96 A52,52 0 0,0 91.96,120.1 Z"       stroke="#0e1a12" stroke-width="2"/>
+        <!-- Rings -->
+        <circle cx="140" cy="140" r="130" fill="none" stroke="#263329" stroke-width="1"/>
+        <circle cx="140" cy="140" r="91"  fill="none" stroke="#263329" stroke-width="0.5" stroke-dasharray="2 5" opacity="0.4"/>
+        <circle cx="140" cy="140" r="52"  fill="#0e1a12" stroke="#263329" stroke-width="1"/>
+        <!-- Labels -->
+        <text id="mlbl-long"  x="140" y="52"  text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Long</text>
+        <text id="mlbl-right" x="229" y="140" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Right</text>
+        <text id="mlbl-short" x="140" y="228" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Short</text>
+        <text id="mlbl-left"  x="51"  y="140" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Left</text>
+        <!-- Diagonal labels — two lines, centered in each wedge at ~r=91 midpoint -->
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f">
+          <tspan x="204" y="62">Long</tspan><tspan x="204" dy="10">Right</tspan>
+        </text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f">
+          <tspan x="218" y="204">Short</tspan><tspan x="218" dy="10">Right</tspan>
+        </text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f">
+          <tspan x="62" y="204">Short</tspan><tspan x="62" dy="10">Left</tspan>
+        </text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f">
+          <tspan x="76" y="62">Long</tspan><tspan x="76" dy="10">Left</tspan>
+        </text>
+        <!-- Count overlays — updated by JS -->
+        <text id="mc-long"        x="140" y="70"  text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="15" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-long-right"  x="204" y="76"  text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-right"       x="229" y="158" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="15" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-short-right" x="204" y="208" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-short"       x="140" y="246" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="15" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-short-left"  x="76"  y="208" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-left"        x="51"  y="158" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="15" fill="rgba(255,255,255,0.5)"></text>
+        <text id="mc-long-left"   x="76"  y="76"  text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="13" fill="rgba(255,255,255,0.5)"></text>
+        <!-- Center -->
+        <circle cx="140" cy="140" r="36" fill="#1e2d22" stroke="#263329" stroke-width="1.5"/>
+        <text id="mc-center" x="140" y="135" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="22" fill="#3ddc84"></text>
+        <text x="140" y="152" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7" fill="#6b856f" letter-spacing="1">ON PIN</text>
+      </svg>
+    </div>
+
+    <div class="miss-legend" id="miss-legend"></div>
+  </div>
+
+  <!-- SHOT LOG -->
+  <div class="section-label anim anim-5">Shot Log</div>
+  <div class="shot-log anim anim-5">
+    <div class="log-header">
+      <span style="width:16px"></span>
+      <span style="flex:1">Shot</span>
+      <span style="width:42px;text-align:right">Prox</span>
+      <span style="width:20px;text-align:center">Pts</span>
+      <span style="width:8px"></span>
+    </div>
+    <div id="log-rows"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item" href="challenge-setup.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item" href="results-history.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+  </div>
+
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const roundId = params.get('id');
+
+  const WEDGE_KEYS = ['long','long-right','right','short-right','short','short-left','left','long-left'];
+
+  // MISS_DATA built from API response — keyed by shot type abbreviation + 'total'
+  let MISS_DATA = {};
+  let currentMissKey = 'total';
+
+  /* ── COLOR HELPERS ── */
+  function lerpColor(t) {
+    if (t <= 0) return [38, 51, 41, 0.8];
+    const stops = [
+      [0.0, [38,  80,  50,  0.9]],
+      [0.2, [80,  140, 80,  1.0]],
+      [0.4, [200, 180, 50,  1.0]],
+      [0.6, [245, 160, 40,  1.0]],
+      [0.8, [230, 100, 50,  1.0]],
+      [1.0, [224, 50,  50,  1.0]],
+    ];
+    let lo = stops[0], hi = stops[stops.length-1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (t >= stops[i][0] && t <= stops[i+1][0]) { lo = stops[i]; hi = stops[i+1]; break; }
+    }
+    const f = (t - lo[0]) / (hi[0] - lo[0]);
+    return lo[1].map((v, i) => lo[1][i] + (hi[1][i] - lo[1][i]) * f);
+  }
+  function wedgeColor(count, max) {
+    if (count === 0) return 'rgba(38,51,41,0.8)';
+    const [r,g,b,a] = lerpColor(count / max);
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a.toFixed(2)})`;
+  }
+  function legendColor(count, max) {
+    if (count === 0) return '#263329';
+    const [r,g,b] = lerpColor(count / max);
+    return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+  }
+
+  /* ── RENDER MISS COMPASS ── */
+  function renderMiss(key) {
+    currentMissKey = key;
+    const data = MISS_DATA[key];
+    if (!data) return;
+    const vals = WEDGE_KEYS.map(k => data[k]);
+    const max  = Math.max(...vals, 1);
+
+    WEDGE_KEYS.forEach(k => {
+      const el = document.getElementById('mw-' + k);
+      if (el) el.setAttribute('fill', wedgeColor(data[k], max));
+    });
+    WEDGE_KEYS.forEach(k => {
+      const el = document.getElementById('mc-' + k);
+      if (el) el.textContent = data[k] > 0 ? '×' + data[k] : '';
+    });
+    ['long','right','short','left'].forEach(c => {
+      const lbl = document.getElementById('mlbl-' + c);
+      if (!lbl) return;
+      const count = data[c] || 0;
+      lbl.setAttribute('fill', count > 0 ? legendColor(count, max) : '#c8dccb');
+    });
+    document.getElementById('mc-center').textContent = data.center || 0;
+
+    const legend = document.getElementById('miss-legend');
+    const entries = [
+      { label: 'On Target',  count: data.center || 0,          color: '#3ddc84', glow: true },
+      { label: 'Short',      count: data['short'] || 0,        color: '#e05252' },
+      { label: 'Right',      count: data['right'] || 0,        color: '#e05252' },
+      { label: 'Long',       count: data['long'] || 0,         color: '#f5c842' },
+      { label: 'Short Right',count: data['short-right'] || 0,  color: '#e05252' },
+      { label: 'Long Right', count: data['long-right'] || 0,   color: '#f5c842' },
+      { label: 'Left',       count: data['left'] || 0,         color: '#c8dccb' },
+      { label: 'Short Left', count: data['short-left'] || 0,   color: '#c8dccb' },
+      { label: 'Long Left',  count: data['long-left'] || 0,    color: '#c8dccb' },
+    ].filter(e => e.count > 0 || e.label === 'On Target');
+
+    legend.innerHTML = entries.map(e => `
+      <div class="miss-legend-row">
+        <div class="miss-legend-dot" style="background:${e.color};${e.glow ? 'box-shadow:0 0 5px '+e.color+';' : ''}"></div>
+        <div class="miss-legend-label">${e.label}</div>
+        <div class="miss-legend-count" style="color:${e.count > 0 ? e.color : '#6b856f'}">${e.count}</div>
+      </div>`).join('');
+  }
+
+  function setMissFilter(btn, key) {
+    document.querySelectorAll('.miss-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderMiss(key);
+  }
+
+  /* ── EMPTY MISS DATA ── */
+  function emptyMiss() {
+    return { long:0, 'long-right':0, right:0, 'short-right':0, short:0, 'short-left':0, left:0, 'long-left':0, center:0 };
+  }
+
+  /* ── BUILD MISS DATA FROM SHOTS ── */
+  function buildMissData(shots) {
+    const dirMap = { on_target: 'center' };  // on_target → center bucket
+    const data   = { total: emptyMiss() };
+
+    shots.forEach(s => {
+      const dir  = dirMap[s.miss_direction] || s.miss_direction || 'center';
+      const type = s.shot_type;
+
+      // Total
+      data.total[dir] = (data.total[dir] || 0) + 1;
+
+      // Per shot type
+      if (!data[type]) data[type] = emptyMiss();
+      data[type][dir] = (data[type][dir] || 0) + 1;
+    });
+
+    return data;
+  }
+
+  /* ── STAT COLOR ── */
+  function udColor(pct) {
+    if (pct >= 60) return 'var(--green)';
+    if (pct >= 40) return 'var(--yellow)';
+    return 'var(--red)';
+  }
+
+  /* ── RENDER PAGE FROM API DATA ── */
+  function renderPage(round, shots) {
+    // Cast all numeric fields — CSV returns strings
+    const ud      = Number(round.up_and_down_pct);
+    const strokes = Number(round.total_strokes);
+    const total   = Number(round.total_shots);
+    const prox    = Number(round.avg_proximity_ft);
+    const avgPutts= Number(round.avg_putts);
+    const putts   = strokes - total;
+
+    // Normalise shots array
+    shots = shots.map(s => ({ ...s, putts: Number(s.putts), proximity_ft: Number(s.proximity_ft) }));
+
+    // Hero cards
+    document.querySelector('.hero-card.pb .hero-card-val').innerHTML =
+      `${ud}<span class="unit">%</span>`;
+    document.querySelector('.hero-card.pb .hero-card-sub').innerHTML =
+      `${Math.round(ud / 100 * total)} of ${total}<br>converted`;
+
+    document.querySelector('.hero-card:not(.pb) .hero-card-val').textContent = strokes;
+    document.querySelector('.hero-card:not(.pb) .hero-card-sub').innerHTML =
+      `${total} shots<br>+ ${putts} putts`;
+
+    // Stat strip
+    const statUd = document.getElementById('stat-ud');
+    statUd.textContent = ud + '%';
+    statUd.style.color = udColor(ud);
+
+    document.getElementById('stat-prox').textContent = prox.toFixed(1) + 'ft';
+
+    const statPutts = document.getElementById('stat-putts');
+    statPutts.textContent = avgPutts.toFixed(1);
+    statPutts.style.color = avgPutts <= 1.3 ? 'var(--green)' : avgPutts <= 1.7 ? 'var(--yellow)' : 'var(--red)';
+
+    document.getElementById('stat-strokes').textContent = strokes;
+
+    // Up & down by shot type
+    const typeStats = {};
+    shots.forEach(s => {
+      if (!typeStats[s.shot_type]) typeStats[s.shot_type] = { made: 0, total: 0 };
+      typeStats[s.shot_type].total++;
+      if (s.putts <= 1) typeStats[s.shot_type].made++;
+    });
+
+    const shotRows = document.querySelector('.shot-rows');
+    shotRows.innerHTML = Object.entries(typeStats).map(([type, v]) => {
+      const pct   = Math.round((v.made / v.total) * 100);
+      const color = pct >= 60 ? 'var(--green)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)';
+      return `
+        <div class="shot-row">
+          <div class="shot-row-name">${type}</div>
+          <div class="shot-row-bar-wrap">
+            <div class="shot-row-bar" style="width:${pct}%; background:${color};"></div>
+          </div>
+          <div class="shot-row-pct" style="color:${color}">${pct}%</div>
+        </div>`;
+    }).join('');
+
+    // Shot log
+    const proxColor = ft => ft <= 6 ? 'var(--green)' : ft <= 15 ? 'var(--yellow)' : 'var(--red)';
+    const puttColor = p  => p <= 1  ? 'var(--green)' : p <= 2   ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('log-rows').innerHTML = shots.map((s, i) => {
+      const prox   = Number(s.proximity_ft);
+      const putts  = Number(s.putts);
+      const isUD   = putts <= 1;
+      const result = isUD ? 'green' : putts === 2 ? 'yellow' : 'red';
+      const proxTxt = prox >= 31 ? '>30ft' : prox + 'ft';
+      return `
+        <div class="log-row">
+          <div class="log-num">${i + 1}</div>
+          <div class="log-name">${s.shot_type} <span class="log-pin-inline">· ${s.pin_position} Pin</span></div>
+          <div class="log-prox"  style="color:${proxColor(prox)}">${proxTxt}</div>
+          <div class="log-putts" style="color:${puttColor(putts)}">${putts}</div>
+          <div class="log-result ${result}"></div>
+        </div>`;
+    }).join('');
+
+    // Build miss data and render miss tabs dynamically
+    MISS_DATA = buildMissData(shots);
+    const shotTypes = [...new Set(shots.map(s => s.shot_type))];
+    const tabsEl    = document.getElementById('miss-tabs');
+    tabsEl.innerHTML = `<button class="miss-tab active" onclick="setMissFilter(this,'total')">Total</button>` +
+      shotTypes.map(t => `<button class="miss-tab" onclick="setMissFilter(this,'${t}')">${t}</button>`).join('');
+
+    renderMiss('total');
+  }
+
+  /* ── LOAD DATA ── */
+  async function init() {
+    if (!roundId) {
+      document.querySelector('.hero').innerHTML =
+        `<p style="color:#6b856f;font-family:DM Mono,monospace;padding:20px">No round ID specified.</p>`;
+      return;
+    }
+    try {
+      const res  = await fetch(`/api/shortgame/round/${roundId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      renderPage(data.round, data.shots);
+    } catch (err) {
+      console.error(err);
+      document.querySelector('.hero').innerHTML =
+        `<p style="color:#6b856f;font-family:DM Mono,monospace;padding:20px">Failed to load round: ${err.message}</p>`;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

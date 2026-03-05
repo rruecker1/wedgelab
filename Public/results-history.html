@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Short Game Lab — History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0e1a12;
+    --surface:  #162019;
+    --surface2: #1e2d22;
+    --green:    #3ddc84;
+    --green-dim:#2a9e5e;
+    --yellow:   #f5c842;
+    --red:      #e05252;
+    --text:     #e8f0ea;
+    --muted:    #6b856f;
+    --border:   #263329;
+  }
+
+  html, body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 16px);
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  /* ── TOPBAR ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: auto; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 20px 0 8px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ── STAT STRIP ── */
+  .stat-strip {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .stat-cell {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-cell:last-child { border-right: none; }
+
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-val.good { color: var(--green); }
+  .stat-val.warn { color: var(--yellow); }
+
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ── U&D BY SHOT TYPE + PIN ── */
+  .ud-grid-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ud-grid-header {
+    display: grid;
+    grid-template-columns: 1fr repeat(3, 44px);
+    border-bottom: 1px solid var(--border);
+    padding: 7px 12px;
+    background: var(--surface2);
+  }
+
+  .ud-grid-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .ud-grid-header span:first-child { text-align: left; }
+
+  .ud-grid-row {
+    display: grid;
+    grid-template-columns: 1fr repeat(3, 44px);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+
+  .ud-grid-row:last-child { border-bottom: none; }
+
+  .ud-shot-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .ud-cell {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .ud-cell-bench {
+    font-family: 'DM Mono', monospace;
+    font-size: 6px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 2px;
+    opacity: 0.7;
+  }
+
+  /* ── TIMEFRAME TABS ── */
+  .timeframe-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .timeframe-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex: 1;
+    text-align: center;
+  }
+
+  .timeframe-tab.active {
+    border-color: var(--green-dim);
+    color: var(--green);
+    background: rgba(61,220,132,0.06);
+  }
+
+  /* ── FILTER TABS (kept for other uses) ── */
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    border-color: var(--green-dim);
+    color: var(--green);
+    background: rgba(61,220,132,0.06);
+  }
+
+  /* ── MISS HEATMAP ── */
+  .heatmap-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .heatmap-legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .heatmap-legend-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .heatmap-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .heatmap-swatch {
+    width: 28px;
+    height: 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .heatmap-legend-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .heatmap-legend-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  /* ── MISS SHOT TYPE TABS ── */
+  .miss-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .miss-tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .miss-tab.active {
+    border-color: var(--green-dim);
+    color: var(--green);
+    background: rgba(61,220,132,0.06);
+  }
+
+  /* ── CHALLENGE HISTORY LIST ── */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .history-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+
+  .history-row:active { background: var(--surface2); }
+
+  .history-row-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    width: 32px;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+
+  .history-row-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    flex: 1;
+  }
+
+  .history-row-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+  }
+
+  .history-row-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .history-row-arrow {
+    font-size: 10px;
+    color: var(--border);
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim { animation: fadeUp 0.35s ease both; }
+  .anim-1 { animation-delay: 0.04s; }
+  .anim-2 { animation-delay: 0.10s; }
+  .anim-3 { animation-delay: 0.16s; }
+  .anim-4 { animation-delay: 0.22s; }
+  .anim-5 { animation-delay: 0.28s; }
+  .anim-6 { animation-delay: 0.34s; }
+</style>
+</head>
+<body>
+
+  <!-- TIMEFRAME SELECTOR -->
+  <div class="timeframe-tabs anim anim-1">
+    <button class="timeframe-tab active" onclick="setTimeframe(this,'5')">Last 5</button>
+    <button class="timeframe-tab" onclick="setTimeframe(this,'month')">Last Month</button>
+    <button class="timeframe-tab" onclick="setTimeframe(this,'6month')">Last 6 Months</button>
+    <button class="timeframe-tab" onclick="setTimeframe(this,'all')">All Time</button>
+  </div>
+
+  <!-- ALL TIME STATS -->
+  <div class="section-label anim anim-1" id="stats-label">Last 5 Rounds</div>
+  <div class="stat-strip anim anim-1">
+    <div class="stat-cell">
+      <div class="stat-val good" id="stat-ud">61%</div>
+      <div class="stat-lbl">Avg U&amp;D</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-prox">9.2ft</div>
+      <div class="stat-lbl">Avg Prox</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val warn" id="stat-putts">1.7</div>
+      <div class="stat-lbl">Avg Putts</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="stat-rounds">12</div>
+      <div class="stat-lbl">Rounds</div>
+    </div>
+  </div>
+
+  <!-- U&D % BY SHOT TYPE + PIN COMBO -->
+  <div class="section-label anim anim-2">Up &amp; Down % by Shot + Pin</div>
+  <div class="ud-grid-wrap anim anim-2">
+    <div class="ud-grid-header">
+      <span>Shot Type</span>
+      <span>Short</span>
+      <span>Middle</span>
+      <span>Long</span>
+    </div>
+    <!-- Rows rendered by JS -->
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;margin-bottom:4px">
+    <div style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.06em;color:var(--muted)">PGA tour avg shown as benchmark · green = above, red = below</div>
+  </div>
+
+  <!-- MISS HEATMAP -->
+  <div class="section-label anim anim-4" id="heatmap-label">Miss Pattern — All Shots</div>
+
+  <!-- Shot type filter — populated by JS -->
+  <div class="miss-tabs anim anim-4" id="heatmap-tabs"></div>
+
+  <div class="heatmap-wrap anim anim-4">
+    <div>
+      <svg id="heatmap-svg" width="130" height="130" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="140" cy="140" r="131" fill="#0e1a12"/>
+        <path id="hw-long"        d="M90.25,19.9 A130,130 0 0,1 189.75,19.9 L159.9,91.96 A52,52 0 0,0 120.1,91.96 Z"        stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-long-right"  d="M189.75,19.9 A130,130 0 0,1 260.1,90.25 L188.04,120.1 A52,52 0 0,0 159.9,91.96 Z"   stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-right"       d="M260.1,90.25 A130,130 0 0,1 260.1,189.75 L188.04,159.9 A52,52 0 0,0 188.04,120.1 Z" stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-short-right" d="M260.1,189.75 A130,130 0 0,1 189.75,260.1 L159.9,188.04 A52,52 0 0,0 188.04,159.9 Z" stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-short"       d="M189.75,260.1 A130,130 0 0,1 90.25,260.1 L120.1,188.04 A52,52 0 0,0 159.9,188.04 Z"  stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-short-left"  d="M90.25,260.1 A130,130 0 0,1 19.9,189.75 L91.96,159.9 A52,52 0 0,0 120.1,188.04 Z"   stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-left"        d="M19.9,189.75 A130,130 0 0,1 19.9,90.25 L91.96,120.1 A52,52 0 0,0 91.96,159.9 Z"      stroke="#0e1a12" stroke-width="2"/>
+        <path id="hw-long-left"   d="M19.9,90.25 A130,130 0 0,1 90.25,19.9 L120.1,91.96 A52,52 0 0,0 91.96,120.1 Z"       stroke="#0e1a12" stroke-width="2"/>
+        <circle cx="140" cy="140" r="130" fill="none" stroke="#263329" stroke-width="1"/>
+        <circle cx="140" cy="140" r="91"  fill="none" stroke="#263329" stroke-width="0.5" stroke-dasharray="2 5" opacity="0.4"/>
+        <circle cx="140" cy="140" r="52"  fill="#0e1a12" stroke="#263329" stroke-width="1"/>
+        <!-- Cardinal labels -->
+        <text x="140" y="52"  text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Long</text>
+        <text x="229" y="140" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Right</text>
+        <text x="140" y="228" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Short</text>
+        <text x="51"  y="140" text-anchor="middle" dominant-baseline="middle" font-family="'DM Mono',monospace" font-size="11" fill="#c8dccb">Left</text>
+        <!-- Diagonal labels -->
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f"><tspan x="204" y="62">Long</tspan><tspan x="204" dy="10">Right</tspan></text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f"><tspan x="218" y="204">Short</tspan><tspan x="218" dy="10">Right</tspan></text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f"><tspan x="62" y="204">Short</tspan><tspan x="62" dy="10">Left</tspan></text>
+        <text text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#6b856f"><tspan x="76" y="62">Long</tspan><tspan x="76" dy="10">Left</tspan></text>
+        <!-- Center -->
+        <circle cx="140" cy="140" r="36" fill="#1e2d22" stroke="#263329" stroke-width="1.5"/>
+        <text id="hc-center" x="140" y="133" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="18" fill="#3ddc84"></text>
+        <text x="140" y="149" text-anchor="middle" font-family="'DM Mono',monospace" font-size="6" fill="#6b856f">ON PIN</text>
+      </svg>
+    </div>
+
+    <div class="heatmap-legend" id="heatmap-legend"></div>
+  </div>
+
+  <!-- CHALLENGE HISTORY -->
+  <div class="section-label anim anim-5">Recent Challenges</div>
+  <div class="history-list anim anim-5"></div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav" style="margin-top:24px">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item" href="challenge-setup.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item active" href="results-history.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+  </div>
+
+<script>
+  /* ══════════════════════════════════════════════
+     RESULTS-HISTORY — fully wired to API
+     GET /api/shortgame/stats?timeframe=X
+     GET /api/shortgame/history?timeframe=X
+  ══════════════════════════════════════════════ */
+
+  // Cache fetched data per timeframe — cleared on each page load to pick up server changes
+  const cache = {};
+
+  const WEDGE_KEYS = ['long','long-right','right','short-right','short','short-left','left','long-left'];
+
+  // Tour benchmarks: shot type → { Short, Middle, Long }
+  const TOUR_BENCH = {
+    'Fairway Chip':  { Short: 86, Middle: 64, Long: 52 },
+    'Rough Chip':    { Short: 56, Middle: 56, Long: 39 },
+    'Short Pitch':   { Short: 52, Middle: 27, Long: 27 },
+    'Long Pitch':    { Short: 27, Middle: 27, Long: 27 },
+    'Rough Pitch':   { Short: 56, Middle: 27, Long: 27 },
+    'Bunker':        { Short: 56, Middle: 56, Long: 56 },
+  };
+  const SHOT_TYPE_ORDER = ['Fairway Chip','Rough Chip','Short Pitch','Long Pitch','Rough Pitch','Bunker'];
+
+  let currentTF   = '5';
+  let currentShot = 'total';
+  let MISS_DATA   = {};  // built from API for current TF
+
+  /* ── COLOR HELPERS ── */
+  function lerpColor(t) {
+    if (t <= 0) return [38, 51, 41, 0.8];
+    const stops = [
+      [0.0, [38,  80,  50,  0.9]],
+      [0.2, [80,  140, 80,  1.0]],
+      [0.4, [200, 180, 50,  1.0]],
+      [0.6, [245, 160, 40,  1.0]],
+      [0.8, [230, 100, 50,  1.0]],
+      [1.0, [224, 50,  50,  1.0]],
+    ];
+    let lo = stops[0], hi = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (t >= stops[i][0] && t <= stops[i+1][0]) { lo = stops[i]; hi = stops[i+1]; break; }
+    }
+    const f = (t - lo[0]) / (hi[0] - lo[0]);
+    return lo[1].map((_, i) => lo[1][i] + (hi[1][i] - lo[1][i]) * f);
+  }
+  function wedgeColor(count, max) {
+    if (count === 0) return 'rgba(38,51,41,0.8)';
+    const [r,g,b,a] = lerpColor(count / max);
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a.toFixed(2)})`;
+  }
+  function udColor(val, tour) {
+    const diff = val - tour;
+    if (diff >= 5)  return 'var(--green)';
+    if (diff >= -5) return 'var(--yellow)';
+    return 'var(--red)';
+  }
+  function statColor(ud) {
+    if (ud >= 60) return 'good';
+    if (ud >= 40) return 'warn';
+    return 'bad';
+  }
+
+  /* ── BUILD MISS DATA FROM miss_breakdown + per-type shots ── */
+  function emptyMiss() {
+    return { long:0,'long-right':0,right:0,'short-right':0,short:0,'short-left':0,left:0,'long-left':0,center:0 };
+  }
+  function dirToKey(dir) {
+    return dir === 'on_target' ? 'center' : dir;
+  }
+  function buildMissData(missBreakdown, shotTypeBreakdown) {
+    // missBreakdown: { on_target:N, short:N, ... } — totals
+    // shotTypeBreakdown: { 'Fairway Chip': { on_target:N, short:N, ... }, ... }
+    const data = { total: emptyMiss() };
+    Object.entries(missBreakdown).forEach(([dir, count]) => {
+      data.total[dirToKey(dir)] = count;
+    });
+    Object.entries(shotTypeBreakdown || {}).forEach(([type, breakdown]) => {
+      data[type] = emptyMiss();
+      Object.entries(breakdown).forEach(([dir, count]) => {
+        data[type][dirToKey(dir)] = count;
+      });
+    });
+    return data;
+  }
+
+  /* ── RENDER HEATMAP ── */
+  function renderHeatmap(shotKey) {
+    const data = MISS_DATA[shotKey] || MISS_DATA['total'];
+    if (!data) return;
+    const vals = WEDGE_KEYS.map(k => data[k]);
+    const max  = Math.max(...vals, 1);
+    const total = vals.reduce((a,b) => a+b, 0);
+
+    WEDGE_KEYS.forEach(k => {
+      const el = document.getElementById('hw-' + k);
+      if (el) el.setAttribute('fill', wedgeColor(data[k], max));
+    });
+
+    const centerPct = total + data.center > 0
+      ? Math.round(data.center / (total + data.center) * 100) : 0;
+    document.getElementById('hc-center').textContent = centerPct + '%';
+
+    const entries = [
+      { label: 'On Target',   count: null,              pct: centerPct, color: '#3ddc84' },
+      { label: 'Short',       count: data['short']       || 0 },
+      { label: 'Right',       count: data['right']       || 0 },
+      { label: 'Long',        count: data['long']        || 0 },
+      { label: 'Short Right', count: data['short-right'] || 0 },
+      { label: 'Long Right',  count: data['long-right']  || 0 },
+      { label: 'Left',        count: data['left']        || 0 },
+      { label: 'Short Left',  count: data['short-left']  || 0 },
+      { label: 'Long Left',   count: data['long-left']   || 0 },
+    ].filter(e => e.count === null || e.count > 0);
+
+    document.getElementById('heatmap-legend').innerHTML = entries.map(e => {
+      if (e.count === null) return `
+        <div class="heatmap-legend-row">
+          <div class="heatmap-swatch" style="background:rgba(61,220,132,0.7)"></div>
+          <div class="heatmap-legend-label">${e.label}</div>
+          <div class="heatmap-legend-pct" style="color:var(--green)">${e.pct}%</div>
+        </div>`;
+      const pct = total > 0 ? Math.round(e.count / total * 100) : 0;
+      const [r,g,b] = lerpColor(e.count / max);
+      const col = `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+      return `
+        <div class="heatmap-legend-row">
+          <div class="heatmap-swatch" style="background:${col}"></div>
+          <div class="heatmap-legend-label">${e.label}</div>
+          <div class="heatmap-legend-pct" style="color:${col}">${pct}%</div>
+        </div>`;
+    }).join('');
+  }
+
+  function setHeatmapShot(btn, shotKey) {
+    document.querySelectorAll('#heatmap-tabs .miss-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentShot = shotKey;
+    renderHeatmap(currentShot);
+  }
+
+  /* ── RENDER STAT STRIP ── */
+  function renderStats(stats) {
+    const ud = stats.avg_ud_pct ?? 0;
+    document.getElementById('stat-ud').textContent     = stats.avg_ud_pct != null ? ud + '%' : '—';
+    document.getElementById('stat-ud').className       = 'stat-val ' + statColor(ud);
+    document.getElementById('stat-prox').textContent   = stats.avg_proximity_ft != null ? stats.avg_proximity_ft.toFixed(1) + 'ft' : '—';
+    document.getElementById('stat-putts').textContent  = stats.avg_putts != null ? Number(stats.avg_putts).toFixed(1) : '—';
+    document.getElementById('stat-rounds').textContent = stats.rounds ?? 0;
+  }
+
+  /* ── BUILD U&D GRID ── */
+  function buildUDGrid(udGrid) {
+    // udGrid: [{ shot_type, pin_position, pct }]
+    const wrap   = document.querySelector('.ud-grid-wrap');
+    const header = wrap.querySelector('.ud-grid-header');
+    wrap.innerHTML = '';
+    wrap.appendChild(header);
+
+    // Group by shot type, sorted by known order
+    const byType = {};
+    (udGrid || []).forEach(item => {
+      if (!byType[item.shot_type]) byType[item.shot_type] = {};
+      byType[item.shot_type][item.pin_position] = item.pct;
+    });
+
+    const types = SHOT_TYPE_ORDER.filter(t => byType[t]);
+    if (types.length === 0) {
+      wrap.innerHTML += '<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:9px;color:var(--muted)">No data yet</div>';
+      return;
+    }
+
+    types.forEach(type => {
+      const pins  = byType[type] || {};
+      const bench = TOUR_BENCH[type] || {};
+      const el    = document.createElement('div');
+      el.className = 'ud-grid-row';
+      el.innerHTML = `
+        <div class="ud-shot-name">${type}</div>
+        ${['Short','Middle','Long'].map(pin => {
+          const val = pins[pin];
+          const tb  = bench[pin] ?? 50;
+          return val != null
+            ? `<div>
+                <div class="ud-cell" style="color:${udColor(val, tb)}">${val}%</div>
+                <div class="ud-cell-bench">${tb}% tour</div>
+               </div>`
+            : `<div><div class="ud-cell" style="color:var(--muted)">—</div><div class="ud-cell-bench">${tb}% tour</div></div>`;
+        }).join('')}
+      `;
+      wrap.appendChild(el);
+    });
+  }
+
+  /* ── RENDER HISTORY LIST ── */
+  function renderHistoryList(rounds) {
+    const list = document.querySelector('.history-list');
+    if (!rounds || rounds.length === 0) {
+      list.innerHTML = '<div style="padding:16px;font-family:\'DM Mono\',monospace;font-size:9px;color:var(--muted);text-align:center">No rounds yet</div>';
+      return;
+    }
+    const sorted = [...rounds].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+    list.innerHTML = sorted.map(r => {
+      const ud    = r.up_and_down_pct;
+      const color = ud >= 60 ? 'var(--green)' : ud >= 40 ? 'var(--yellow)' : 'var(--red)';
+      const d     = new Date(r.date);
+      const now   = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const dateStr = isToday
+        ? `Today<br>${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`
+        : d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const putts  = r.total_strokes - r.total_shots;
+      return `
+        <div class="history-row" onclick="window.location.href='results-round.html?id=${r.round_id}'" style="cursor:pointer">
+          <div class="history-row-date">${dateStr}</div>
+          <div>
+            <div class="history-row-name">${r.challenge}</div>
+            <div class="history-row-sub">${r.total_shots} shots · ${Number(r.avg_proximity_ft).toFixed(1)}ft avg · ${r.total_strokes} strokes</div>
+          </div>
+          <div class="history-row-pct" style="color:${color}">${ud}%</div>
+          <div class="history-row-arrow">›</div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ── BUILD HEATMAP TABS FROM AVAILABLE SHOT TYPES ── */
+  function buildHeatmapTabs(missData) {
+    const types   = Object.keys(missData).filter(k => k !== 'total');
+    const tabsEl  = document.getElementById('heatmap-tabs');
+    tabsEl.innerHTML = `<button class="miss-tab active" onclick="setHeatmapShot(this,'total')">Total</button>` +
+      types.map(t => `<button class="miss-tab" onclick="setHeatmapShot(this,'${t}')">${t}</button>`).join('');
+  }
+
+  /* ── FETCH & RENDER FOR A TIMEFRAME ── */
+  async function loadTimeframe(tf) {
+    if (cache[tf]) {
+      applyData(tf, cache[tf].stats, cache[tf].rounds);
+      return;
+    }
+    try {
+      const t = Date.now();
+      const [statsRes, historyRes] = await Promise.all([
+        fetch(`/api/shortgame/stats?timeframe=${tf}&_=${t}`),
+        fetch(`/api/shortgame/history?timeframe=${tf}&_=${t}`),
+      ]);
+      const stats   = await statsRes.json();
+      const history = await historyRes.json();
+      const rounds  = history.rounds || [];
+
+      // Fetch all shots for these rounds to build per-type miss breakdown
+      // Use /api/shortgame/round/:id which is already implemented
+      const shotResults = await Promise.all(
+        rounds.map(r => fetch(`/api/shortgame/round/${r.round_id}?_=${t}`)
+          .then(res => res.json()).catch(() => ({ shots: [] })))
+      );
+      const allShots = shotResults.flatMap(d => d.shots || []);
+
+      // Build miss_by_type from shots
+      const missByType = {};
+      allShots.forEach(s => {
+        const type = s.shot_type;
+        const dir  = s.miss_direction || 'on_target';
+        if (!missByType[type]) missByType[type] = {};
+        missByType[type][dir] = (missByType[type][dir] || 0) + 1;
+      });
+      stats.miss_by_type = missByType;
+
+      cache[tf] = { stats, rounds };
+      applyData(tf, stats, rounds);
+    } catch (err) {
+      console.error('Failed to load timeframe', tf, err);
+    }
+  }
+
+  function applyData(tf, stats, rounds) {
+    renderStats(stats);
+    buildUDGrid(stats.ud_grid);
+
+    MISS_DATA = buildMissData(stats.miss_breakdown || {}, stats.miss_by_type || {});
+    buildHeatmapTabs(MISS_DATA);
+    currentShot = 'total';
+    renderHeatmap('total');
+
+    if (tf === currentTF) renderHistoryList(rounds);
+
+    const labels = { '5':'Last 5 Rounds', month:'Last Month', '6month':'Last 6 Months', all:'All Time' };
+    document.getElementById('heatmap-label').textContent = 'Miss Pattern — ' + (labels[tf] || tf);
+    document.getElementById('stats-label').textContent   = labels[tf] || tf;
+  }
+
+  function setTimeframe(btn, key) {
+    document.querySelectorAll('.timeframe-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentTF = key;
+    loadTimeframe(key);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => loadTimeframe('5'));
+
+</script>
+
+</body>
+</html>

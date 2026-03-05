@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Short Game Lab — Shot Entry</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0e1a12;
+    --surface:  #162019;
+    --surface2: #1e2d22;
+    --green:    #3ddc84;
+    --green-dim:#2a9e5e;
+    --yellow:   #f5c842;
+    --red:      #e05252;
+    --text:     #e8f0ea;
+    --muted:    #6b856f;
+    --border:   #263329;
+  }
+
+  html, body {
+    height: 100dvh;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-width: 430px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 8px) 16px env(safe-area-inset-bottom, 12px);
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 6px;
+    flex-shrink: 0;
+  }
+
+  .topbar-actions { display: flex; gap: 6px; }
+
+  .topbar-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .exit-btn, .finish-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    border-radius: 20px;
+    padding: 4px 11px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+
+  .exit-btn {
+    color: var(--muted);
+    border: 1px solid var(--border);
+    background: none;
+  }
+
+  .finish-btn {
+    color: var(--bg);
+    background: var(--green);
+    border: none;
+    font-weight: 600;
+    opacity: 0.5;  /* dimmed until at least one shot logged */
+    pointer-events: none;
+  }
+
+  .finish-btn.active {
+    opacity: 1;
+    pointer-events: auto;
+    box-shadow: 0 0 10px rgba(61,220,132,0.3);
+  }
+
+  /* ── MODAL ── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(14,26,18,0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .modal-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 430px;
+    padding: 20px 20px env(safe-area-inset-bottom, 24px);
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .modal-backdrop.visible .modal {
+    transform: translateY(0);
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .modal-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .modal-shot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+  }
+
+  .modal-shot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .modal-shot-row:active { opacity: 0.7; }
+
+  .modal-shot-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .modal-shot-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .modal-shot-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .modal-shot-status.done    { background: rgba(61,220,132,0.1);  color: var(--green); }
+  .modal-shot-status.skipped { background: rgba(245,200,66,0.1);  color: var(--yellow); }
+  .modal-shot-status.pending { background: rgba(107,133,111,0.1); color: var(--muted); }
+
+  .modal-shot-edit {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+
+  .modal-btn:active { opacity: 0.8; }
+
+  .modal-btn-cancel {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .modal-btn-save {
+    background: var(--green);
+    color: var(--bg);
+    flex: 2;
+    box-shadow: 0 4px 16px rgba(61,220,132,0.2);
+  }
+
+  .modal-btn-exit {
+    background: rgba(224,82,82,0.12);
+    color: var(--red);
+    border: 1px solid rgba(224,82,82,0.2);
+  }
+
+  /* ── PROGRESS DOTS ── */
+  .progress-section { flex-shrink: 0; margin-bottom: 5px; }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .shot-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .dots-row {
+    display: flex;
+    align-items: stretch;
+    gap: 3px;
+  }
+
+  .dot {
+    flex: 1;
+    height: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0px;
+    font-weight: 500;
+    color: transparent;
+    user-select: none;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: flex 0.22s ease, height 0.22s ease, font-size 0.15s ease,
+                border-radius 0.22s ease, color 0.1s ease;
+  }
+
+  /* Expanded state — triggered by JS on touchstart/mouseenter of the row */
+  .dot.expanded {
+    flex: 3;
+    height: 26px;
+    font-size: 10px;
+    border-radius: 7px;
+    color: inherit;
+  }
+
+  .dot.current {
+    flex: 2;
+    height: 18px;
+    font-size: 10px;
+    border-radius: 5px;
+    color: inherit;
+  }
+
+  .dot.pending  { background: var(--border); color: var(--muted); }
+  .dot.current  { background: var(--text); color: var(--bg) !important; box-shadow: 0 0 6px rgba(232,240,234,0.2); }
+  .dot.done     { background: var(--green-dim); color: var(--green); }
+  .dot.skipped  { background: rgba(245,200,66,0.12); color: var(--yellow); border: 1px solid rgba(245,200,66,0.3); }
+  .dot:active   { opacity: 0.65; }
+
+  /* ── CURRENT SHOT CARD ── */
+  .shot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-bottom: 5px;
+  }
+
+  .shot-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--green);
+    border-radius: 12px 0 0 12px;
+  }
+
+  .shot-card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 21px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .shot-card-pin {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .shot-card-next {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .shot-card-next-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    font-size: 8px;
+    margin-bottom: 1px;
+  }
+
+  /* ── STAT STRIP ── */
+  .stat-strip {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-bottom: 5px;
+  }
+
+  .stat-cell {
+    flex: 1;
+    padding: 5px 0;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat-cell:last-child { border-right: none; }
+
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat-val.good { color: var(--green); }
+  .stat-val.bad  { color: var(--red); }
+
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 4px 0 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── PROXIMITY CARD ── */
+  .prox-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    flex-shrink: 0;
+    padding: 7px 14px 9px;
+  }
+
+  .prox-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .prox-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    transition: color 0.3s;
+  }
+
+  .prox-number .unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    vertical-align: super;
+    margin-left: 2px;
+  }
+
+  .prox-zone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-top: 3px;
+    transition: all 0.3s;
+  }
+
+  .zone-green  { background: rgba(61,220,132,0.08); color: var(--green);  border: 1px solid rgba(61,220,132,0.2); }
+  .zone-yellow { background: rgba(245,200,66,0.08); color: var(--yellow); border: 1px solid rgba(245,200,66,0.2); }
+  .zone-red    { background: rgba(224,82,82,0.08);  color: var(--red);    border: 1px solid rgba(224,82,82,0.2); }
+
+  .prox-svg { width: 56px; height: 56px; flex-shrink: 0; }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    outline: none;
+    border: none;
+    display: block;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--green);
+    box-shadow: 0 0 10px rgba(61,220,132,0.35);
+    cursor: pointer;
+    margin-top: -9px;
+  }
+
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--surface2); }
+  input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--green);
+    cursor: pointer;
+  }
+
+  .slider-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+  }
+
+  .slider-end {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  /* ── DIVIDER ── */
+  .rule {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0 0;
+    flex-shrink: 0;
+  }
+
+  /* ── COMPASS ── */
+  .compass-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  /* The SVG compass scales to fill available space */
+  .compass-wrap {
+    flex-shrink: 0;
+    /* size set via JS on load to fit screen */
+  }
+
+  .compass-svg {
+    display: block;
+  }
+
+  .wedge {
+    fill: var(--surface);
+    stroke: var(--bg);
+    stroke-width: 2.5;
+    cursor: pointer;
+    transition: fill 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .wedge:active { opacity: 0.7; }
+
+  .wedge.selected {
+    fill: var(--surface2);
+  }
+
+  /* Overlay paths drawn on top — green stroke only, no fill */
+  .wedge-outline {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 2.5;
+    pointer-events: none;
+    transition: stroke 0.15s ease;
+  }
+
+  .wedge-outline.selected {
+    stroke: var(--green);
+  }
+
+  .wedge-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    fill: #c8dccb;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    transition: fill 0.15s;
+    user-select: none;
+  }
+
+  .wedge-label.diag { font-size: 9.5px; }
+  .wedge-label.selected,
+  g.selected .wedge-label { fill: var(--green); }
+
+  .center-btn { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  .center-circle {
+    fill: var(--surface2);
+    stroke: var(--border);
+    stroke-width: 1.5;
+    transition: stroke 0.15s, filter 0.15s;
+  }
+
+  .center-btn.selected .center-circle {
+    stroke: var(--green);
+    filter: drop-shadow(0 0 5px rgba(61,220,132,0.4));
+  }
+
+  /* Miss readout beside compass */
+  .miss-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .miss-readout-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .miss-readout-inline {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .miss-readout-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    opacity: 0;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+    box-shadow: 0 0 5px var(--green);
+  }
+
+  .miss-readout-dot.visible { opacity: 1; }
+
+  .miss-readout-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+
+  .miss-readout-value.active { color: var(--text); }
+
+  /* ── PUTTS ── */
+  .putts-row {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .putt-btn {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .putt-btn:active { transform: scale(0.92); }
+
+  .putt-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    display: block;
+  }
+
+  .putt-chip .putt-main { font-size: 15px; line-height: 1.2; }
+
+  .putt-btn.selected {
+    background: var(--surface2);
+    border-color: var(--green-dim);
+    box-shadow: 0 0 12px rgba(61,220,132,0.08);
+  }
+
+  .putt-btn.selected .putt-main { color: var(--green); }
+
+  .putt-chip {
+    background: rgba(61,220,132,0.05);
+    border-color: rgba(61,220,132,0.15);
+  }
+
+  /* ── SPACER + BOTTOM BAR ── */
+  .spacer { flex: 1; min-height: 4px; }
+
+  .bottom-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0 0;
+    flex-shrink: 0;
+  }
+
+  .btn-prev {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .btn-prev:active { border-color: var(--muted); color: var(--text); }
+  .btn-prev:disabled { opacity: 0.3; cursor: default; }
+
+  .btn-next {
+    flex: 2;
+    padding: 15px;
+    background: var(--green);
+    border: none;
+    border-radius: 14px;
+    color: #071209;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(61,220,132,0.25);
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+
+  .btn-next:active { opacity: 0.85; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--surface2);
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 9px 18px;
+    border-radius: 30px;
+    transition: transform 0.3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim   { animation: fadeUp 0.3s ease both; }
+  .anim-1 { animation-delay: 0.03s; }
+  .anim-2 { animation-delay: 0.07s; }
+  .anim-3 { animation-delay: 0.11s; }
+  .anim-4 { animation-delay: 0.15s; }
+  .anim-5 { animation-delay: 0.19s; }
+</style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar anim anim-1">
+    <span class="topbar-title">Up &amp; Down Challenge</span>
+    <div class="topbar-actions">
+      <button class="exit-btn" onclick="exitRound()">✕ Exit</button>
+      <button class="finish-btn" id="finish-btn" onclick="finishRound()">Finish</button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+    <div class="modal" id="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-sub"   id="modal-sub"></div>
+      <div class="modal-shot-list" id="modal-shot-list"></div>
+      <div class="modal-actions" id="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS DOTS -->
+  <div class="progress-section anim anim-1">
+    <div class="progress-meta">
+      <span class="shot-count" id="shot-label">Shot 4 of 9</span>
+      <span class="shot-count" id="skipped-label"></span>
+    </div>
+    <div class="dots-row" id="dots-row"></div>
+  </div>
+
+  <!-- CURRENT SHOT -->
+  <div class="shot-card anim anim-2">
+    <div>
+      <div class="shot-card-name">Fairway Chip</div>
+      <div class="shot-card-pin">Short Pin</div>
+    </div>
+    <div class="shot-card-next">
+      <span class="shot-card-next-label">Next</span>
+      Rough Pitch<br>Middle Pin
+    </div>
+  </div>
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip anim anim-2">
+    <div class="stat-cell">
+      <div class="stat-val" id="live-ud">—</div>
+      <div class="stat-lbl">Up &amp; Downs</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="live-putts">—</div>
+      <div class="stat-lbl">Avg Putts</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="live-prox">—</div>
+      <div class="stat-lbl">Avg Prox</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" id="live-missed">—</div>
+      <div class="stat-lbl">Missed</div>
+    </div>
+  </div>
+
+  <!-- PROXIMITY -->
+  <div class="section-label anim anim-3">Proximity to Hole</div>
+  <div class="prox-card anim anim-3">
+    <div class="prox-top">
+      <div style="flex:1;">
+        <div class="prox-number" id="prox-val">6<span class="unit">FT</span></div>
+        <div class="prox-zone-badge zone-green" id="prox-badge">● Makeable</div>
+      </div>
+      <svg class="prox-svg" viewBox="0 0 90 90" fill="none">
+        <circle cx="45" cy="45" r="42" stroke="#263329" stroke-width="1"/>
+        <circle cx="45" cy="45" r="30" stroke="#263329" stroke-width="1"/>
+        <circle cx="45" cy="45" r="18" stroke="rgba(61,220,132,0.2)" stroke-width="1"/>
+        <circle cx="45" cy="45" r="7"  stroke="rgba(61,220,132,0.45)" stroke-width="1.5"/>
+        <circle cx="45" cy="45" r="2.5" fill="#e8f0ea" opacity="0.85"/>
+        <line x1="45" y1="42" x2="45" y2="14" stroke="rgba(232,240,234,0.35)" stroke-width="1.2"/>
+        <polygon points="45,14 54,19 45,24" fill="rgba(61,220,132,0.75)"/>
+        <circle cx="62" cy="28" r="5" fill="rgba(61,220,132,0.08)" stroke="rgba(61,220,132,0.5)" stroke-width="1.5" id="ball-svg"/>
+        <circle cx="62" cy="28" r="2" fill="rgba(61,220,132,0.7)" id="ball-core"/>
+      </svg>
+    </div>
+    <input type="range" min="0" max="31" value="6" id="proximity-slider" oninput="updateProximity(this.value)">
+    <div class="slider-ends">
+      <span class="slider-end">0 ft</span>
+      <span class="slider-end">&gt;30 ft</span>
+    </div>
+  </div>
+
+  <div class="rule anim anim-3"></div>
+
+  <!-- MISS LOCATION — compass + readout side by side -->
+  <div class="section-label anim anim-4">Miss Location</div>
+  <div class="compass-row anim anim-4">
+
+    <div class="compass-wrap" id="compass-wrap">
+      <svg class="compass-svg" id="compass-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="140" cy="140" r="131" fill="var(--bg)"/>
+
+        <!-- 8 wedges — trig-correct -->
+        <path class="wedge" id="w-long"        d="M90.25,19.9 A130,130 0 0,1 189.75,19.9 L159.9,91.96 A52,52 0 0,0 120.1,91.96 Z"         onclick="selectWedge('long','Long')"/>
+        <path class="wedge" id="w-long-right"  d="M189.75,19.9 A130,130 0 0,1 260.1,90.25 L188.04,120.1 A52,52 0 0,0 159.9,91.96 Z"      onclick="selectWedge('long-right','Long Right')"/>
+        <path class="wedge" id="w-right"       d="M260.1,90.25 A130,130 0 0,1 260.1,189.75 L188.04,159.9 A52,52 0 0,0 188.04,120.1 Z"    onclick="selectWedge('right','Right')"/>
+        <path class="wedge" id="w-short-right" d="M260.1,189.75 A130,130 0 0,1 189.75,260.1 L159.9,188.04 A52,52 0 0,0 188.04,159.9 Z"   onclick="selectWedge('short-right','Short Right')"/>
+        <path class="wedge" id="w-short"       d="M189.75,260.1 A130,130 0 0,1 90.25,260.1 L120.1,188.04 A52,52 0 0,0 159.9,188.04 Z"    onclick="selectWedge('short','Short')"/>
+        <path class="wedge" id="w-short-left"  d="M90.25,260.1 A130,130 0 0,1 19.9,189.75 L91.96,159.9 A52,52 0 0,0 120.1,188.04 Z"      onclick="selectWedge('short-left','Short Left')"/>
+        <path class="wedge" id="w-left"        d="M19.9,189.75 A130,130 0 0,1 19.9,90.25 L91.96,120.1 A52,52 0 0,0 91.96,159.9 Z"        onclick="selectWedge('left','Left')"/>
+        <path class="wedge" id="w-long-left"   d="M19.9,90.25 A130,130 0 0,1 90.25,19.9 L120.1,91.96 A52,52 0 0,0 91.96,120.1 Z"         onclick="selectWedge('long-left','Long Left')"/>
+
+        <!-- Labels -->
+        <text class="wedge-label"      id="lbl-long"        x="140"   y="52">Long</text>
+
+        <g id="lbl-long-right">
+          <text class="wedge-label diag" x="204" y="74">Long</text>
+          <text class="wedge-label diag" x="204" y="86">Right</text>
+        </g>
+
+        <text class="wedge-label"      id="lbl-right"       x="229"   y="140">Right</text>
+
+        <g id="lbl-short-right">
+          <text class="wedge-label diag" x="204" y="194">Short</text>
+          <text class="wedge-label diag" x="204" y="206">Right</text>
+        </g>
+
+        <text class="wedge-label"      id="lbl-short"       x="140"   y="228">Short</text>
+
+        <g id="lbl-short-left">
+          <text class="wedge-label diag" x="76" y="194">Short</text>
+          <text class="wedge-label diag" x="76" y="206">Left</text>
+        </g>
+
+        <text class="wedge-label"      id="lbl-left"        x="51"    y="140">Left</text>
+
+        <g id="lbl-long-left">
+          <text class="wedge-label diag" x="76" y="74">Long</text>
+          <text class="wedge-label diag" x="76" y="86">Left</text>
+        </g>
+
+        <!-- Rings -->
+        <circle cx="140" cy="140" r="130" fill="none" stroke="var(--border)" stroke-width="1"/>
+        <circle cx="140" cy="140" r="91"  fill="none" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="2 5" opacity="0.4"/>
+        <circle cx="140" cy="140" r="52"  fill="var(--bg)" stroke="var(--border)" stroke-width="1"/>
+
+        <!-- Center -->
+        <g class="center-btn" id="center-btn" onclick="selectWedge('center','On Target')">
+          <circle class="center-circle" cx="140" cy="140" r="36"/>
+          <circle cx="140" cy="140" r="6.5" fill="var(--bg)" opacity="0.9"/>
+          <line x1="140" y1="133" x2="140" y2="117" stroke="rgba(232,240,234,0.35)" stroke-width="1.5"/>
+          <polygon points="140,117 148,121 140,125" fill="rgba(61,220,132,0.65)"/>
+        </g>
+
+        <!-- Outline overlays — drawn on top so stroke is never clipped -->
+        <path class="wedge-outline" id="o-long"        d="M90.25,19.9 A130,130 0 0,1 189.75,19.9 L159.9,91.96 A52,52 0 0,0 120.1,91.96 Z"/>
+        <path class="wedge-outline" id="o-long-right"  d="M189.75,19.9 A130,130 0 0,1 260.1,90.25 L188.04,120.1 A52,52 0 0,0 159.9,91.96 Z"/>
+        <path class="wedge-outline" id="o-right"       d="M260.1,90.25 A130,130 0 0,1 260.1,189.75 L188.04,159.9 A52,52 0 0,0 188.04,120.1 Z"/>
+        <path class="wedge-outline" id="o-short-right" d="M260.1,189.75 A130,130 0 0,1 189.75,260.1 L159.9,188.04 A52,52 0 0,0 188.04,159.9 Z"/>
+        <path class="wedge-outline" id="o-short"       d="M189.75,260.1 A130,130 0 0,1 90.25,260.1 L120.1,188.04 A52,52 0 0,0 159.9,188.04 Z"/>
+        <path class="wedge-outline" id="o-short-left"  d="M90.25,260.1 A130,130 0 0,1 19.9,189.75 L91.96,159.9 A52,52 0 0,0 120.1,188.04 Z"/>
+        <path class="wedge-outline" id="o-left"        d="M19.9,189.75 A130,130 0 0,1 19.9,90.25 L91.96,120.1 A52,52 0 0,0 91.96,159.9 Z"/>
+        <path class="wedge-outline" id="o-long-left"   d="M19.9,90.25 A130,130 0 0,1 90.25,19.9 L120.1,91.96 A52,52 0 0,0 91.96,120.1 Z"/>
+      </svg>
+    </div>
+
+    <!-- Miss readout stacked to the right -->
+    <div class="miss-readout">
+      <div class="miss-readout-label">Selected</div>
+      <div class="miss-readout-inline">
+        <div class="miss-readout-dot" id="miss-dot"></div>
+        <div class="miss-readout-value" id="miss-value">—</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rule anim anim-4"></div>
+
+  <!-- PUTTS -->
+  <div class="section-label anim anim-5">Putts Taken</div>
+  <div class="putts-row anim anim-5">
+    <button class="putt-btn putt-chip" onclick="selectPutt(this)">
+      <span class="putt-main">Chip<br>In</span>
+    </button>
+    <button class="putt-btn selected" onclick="selectPutt(this)">
+      <span class="putt-main">1</span>
+    </button>
+    <button class="putt-btn" onclick="selectPutt(this)">
+      <span class="putt-main">2</span>
+    </button>
+    <button class="putt-btn" onclick="selectPutt(this)">
+      <span class="putt-main">3</span>
+    </button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="bottom-bar anim anim-5">
+    <button class="btn-prev" id="skip-btn" onclick="skipShot()">Skip</button>
+    <button class="btn-next" id="log-btn"  onclick="logShot()">Log Shot</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  /* ── PRESET DEFINITIONS ── */
+  const PRESET_SHOTS = {
+    full: [
+      { name: 'Fairway Chip',       pin: 'Short Pin'  },
+      { name: 'Fairway Chip',       pin: 'Middle Pin' },
+      { name: 'Fairway Chip',       pin: 'Long Pin'   },
+      { name: 'Short Pitch',        pin: 'Short Pin'  },
+      { name: 'Short Pitch',        pin: 'Middle Pin' },
+      { name: 'Short Pitch',        pin: 'Long Pin'   },
+      { name: 'Long Pitch',         pin: 'Short Pin'  },
+      { name: 'Long Pitch',         pin: 'Middle Pin' },
+      { name: 'Long Pitch',         pin: 'Long Pin'   },
+      { name: 'Rough Chip',         pin: 'Short Pin'  },
+      { name: 'Rough Chip',         pin: 'Middle Pin' },
+      { name: 'Rough Chip',         pin: 'Long Pin'   },
+      { name: 'Rough Pitch',        pin: 'Short Pin'  },
+      { name: 'Rough Pitch',        pin: 'Middle Pin' },
+      { name: 'Rough Pitch',        pin: 'Long Pin'   },
+      { name: 'Bunker',             pin: 'Short Pin'  },
+      { name: 'Bunker',             pin: 'Middle Pin' },
+      { name: 'Bunker',             pin: 'Long Pin'   },
+    ],
+    chip: [
+      { name: 'Fairway Chip', pin: 'Short Pin'  },
+      { name: 'Fairway Chip', pin: 'Middle Pin' },
+      { name: 'Fairway Chip', pin: 'Long Pin'   },
+      { name: 'Fairway Chip', pin: 'Short Pin'  },
+      { name: 'Rough Chip',   pin: 'Short Pin'  },
+      { name: 'Rough Chip',   pin: 'Middle Pin' },
+      { name: 'Rough Chip',   pin: 'Long Pin'   },
+      { name: 'Rough Chip',   pin: 'Short Pin'  },
+      { name: 'Fairway Chip', pin: 'Middle Pin' },
+      { name: 'Fairway Chip', pin: 'Long Pin'   },
+      { name: 'Rough Chip',   pin: 'Middle Pin' },
+      { name: 'Rough Chip',   pin: 'Long Pin'   },
+    ],
+    sand: [
+      { name: 'Bunker', pin: 'Short Pin'  },
+      { name: 'Bunker', pin: 'Middle Pin' },
+      { name: 'Bunker', pin: 'Long Pin'   },
+      { name: 'Bunker', pin: 'Short Pin'  },
+      { name: 'Bunker', pin: 'Middle Pin' },
+      { name: 'Bunker', pin: 'Long Pin'   },
+      { name: 'Bunker', pin: 'Short Pin'  },
+      { name: 'Bunker', pin: 'Middle Pin' },
+      { name: 'Bunker', pin: 'Long Pin'   },
+    ],
+    scoring: [
+      { name: 'Short Pitch', pin: 'Short Pin'  },
+      { name: 'Short Pitch', pin: 'Middle Pin' },
+      { name: 'Short Pitch', pin: 'Long Pin'   },
+      { name: 'Short Pitch', pin: 'Short Pin'  },
+      { name: 'Long Pitch',  pin: 'Short Pin'  },
+      { name: 'Long Pitch',  pin: 'Middle Pin' },
+      { name: 'Long Pitch',  pin: 'Long Pin'   },
+      { name: 'Long Pitch',  pin: 'Short Pin'  },
+      { name: 'Short Pitch', pin: 'Middle Pin' },
+      { name: 'Short Pitch', pin: 'Long Pin'   },
+      { name: 'Long Pitch',  pin: 'Middle Pin' },
+      { name: 'Long Pitch',  pin: 'Long Pin'   },
+    ],
+    pressure: [
+      { name: 'Fairway Chip', pin: 'Short Pin' },
+      { name: 'Short Pitch',  pin: 'Short Pin' },
+      { name: 'Long Pitch',   pin: 'Short Pin' },
+      { name: 'Rough Chip',   pin: 'Short Pin' },
+      { name: 'Rough Pitch',  pin: 'Short Pin' },
+      { name: 'Bunker',       pin: 'Short Pin' },
+      { name: 'Fairway Chip', pin: 'Short Pin' },
+      { name: 'Short Pitch',  pin: 'Short Pin' },
+      { name: 'Rough Chip',   pin: 'Short Pin' },
+      { name: 'Bunker',       pin: 'Short Pin' },
+    ],
+  };
+
+  const PRESET_NAMES = {
+    full: 'Full Round', chip: 'Chip Master', sand: 'Sand Save',
+    scoring: 'Scoring Zone', pressure: 'Short Sided',
+  };
+
+  /* ── PARSE URL PARAMS ── */
+  const params   = new URLSearchParams(window.location.search);
+  const presetId = params.get('preset') || 'full';
+  const order    = params.get('order')  || 'sequential';
+
+  /* ── BUILD SHOTS ARRAY ── */
+  let SHOTS = [...(PRESET_SHOTS[presetId] || PRESET_SHOTS.full)];
+  if (order === 'random') {
+    for (let i = SHOTS.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [SHOTS[i], SHOTS[j]] = [SHOTS[j], SHOTS[i]];
+    }
+  }
+
+  // Per-shot results storage
+  const results = SHOTS.map(() => null);  // null until logged
+
+  // States: 'pending' | 'current' | 'done' | 'skipped'
+  const state = SHOTS.map(() => 'pending');
+  let current = 0;
+  state[current] = 'current';
+
+  let selectedProx = 6;
+  const allZones = ['long','long-right','right','short-right','short','short-left','left','long-left','center'];
+
+  /* ── BUILD DOTS ── */
+  function buildDots() {
+    const row = document.getElementById('dots-row');
+    row.innerHTML = '';
+    state.forEach((s, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot ' + s;
+      d.textContent = i + 1;
+      d.dataset.idx = i;
+      d.onclick = () => {
+        if (i === current) return;
+        if (state[current] === 'current') state[current] = 'pending';
+        navigateTo(i);
+      };
+      row.appendChild(d);
+    });
+  }
+
+  /* ── DOT EXPAND INTERACTIONS ── */
+  function initDotInteractions() {
+    const row = document.getElementById('dots-row');
+
+    // Mouse: expand whichever dot is hovered
+    row.addEventListener('mouseover', e => {
+      const d = e.target.closest('.dot');
+      row.querySelectorAll('.dot').forEach(el => el.classList.remove('expanded'));
+      if (d) d.classList.add('expanded');
+    });
+    row.addEventListener('mouseleave', () => {
+      row.querySelectorAll('.dot').forEach(el => el.classList.remove('expanded'));
+    });
+
+    // Touch: expand dot under finger as it slides
+    row.addEventListener('touchstart', handleTouchMove, { passive: true });
+    row.addEventListener('touchmove',  handleTouchMove, { passive: true });
+    row.addEventListener('touchend',   () => {
+      row.querySelectorAll('.dot').forEach(el => el.classList.remove('expanded'));
+    }, { passive: true });
+  }
+
+  function handleTouchMove(e) {
+    const touch = e.touches[0];
+    const row   = document.getElementById('dots-row');
+    const el    = document.elementFromPoint(touch.clientX, touch.clientY);
+    const d     = el && el.closest('.dot');
+    row.querySelectorAll('.dot').forEach(dot => dot.classList.remove('expanded'));
+    if (d) d.classList.add('expanded');
+  }
+
+  /* ── UPDATE HEADER ── */
+  function updateHeader() {
+    const shot = SHOTS[current];
+    document.getElementById('shot-label').textContent = `Shot ${current + 1} of ${SHOTS.length}`;
+    document.querySelector('.shot-card-name').textContent = shot.name;
+    document.querySelector('.shot-card-pin').textContent  = shot.pin;
+
+    // Next shot preview
+    const nextIdx = findNext(current + 1);
+    const nextEl  = document.querySelector('.shot-card-next');
+    if (nextIdx !== -1) {
+      nextEl.innerHTML = `<span class="shot-card-next-label">Next</span>${SHOTS[nextIdx].name}<br>${SHOTS[nextIdx].pin}`;
+    } else {
+      nextEl.innerHTML = `<span class="shot-card-next-label">Last</span>Shot`;
+    }
+
+    // Skipped count badge
+    const skippedCount = state.filter(s => s === 'skipped').length;
+    const lbl = document.getElementById('skipped-label');
+    if (skippedCount > 0) {
+      lbl.textContent = `${skippedCount} skipped`;
+      lbl.style.color = 'var(--yellow)';
+    } else {
+      lbl.textContent = '';
+    }
+  }
+
+  /* ── LIVE STAT STRIP ── */
+  function updateStatStrip() {
+    const logged = results.filter(Boolean);
+    if (logged.length === 0) return;
+
+    const ud     = logged.filter(r => r.putts <= 1).length;
+    const missed = logged.length - ud;
+    const avgPutts = logged.reduce((s, r) => s + r.putts, 0) / logged.length;
+    const avgProx  = logged.reduce((s, r) => s + Math.min(r.proximity_ft, 31), 0) / logged.length;
+
+    const udEl = document.getElementById('live-ud');
+    udEl.textContent = ud;
+    udEl.className = 'stat-val' + (ud > 0 ? ' good' : '');
+
+    document.getElementById('live-putts').textContent = avgPutts.toFixed(1);
+
+    document.getElementById('live-prox').textContent = avgProx.toFixed(0) + 'ft';
+
+    const missedEl = document.getElementById('live-missed');
+    missedEl.textContent = missed;
+    missedEl.className = 'stat-val' + (missed > 0 ? ' bad' : '');
+  }
+
+  function findNext(fromIdx) {
+    for (let i = fromIdx; i < SHOTS.length; i++) {
+      if (state[i] === 'pending' || state[i] === 'skipped') return i;
+    }
+    return -1;
+  }
+
+  /* ── NAVIGATE TO A SHOT ── */
+  function navigateTo(idx) {
+    if (state[current] === 'current') state[current] = 'pending';
+    state[idx] = 'current';
+    current = idx;
+    resetInputs();
+    // Restore saved inputs if this shot was already logged
+    if (results[idx]) {
+      const r = results[idx];
+      // Restore proximity
+      const prox = Math.min(r.proximity_ft, 31);
+      selectedProx = prox;
+      document.getElementById('proximity-slider').value = prox;
+      updateProximity(prox);
+      // Restore putts
+      document.querySelectorAll('.putt-btn').forEach(btn => {
+        const txt = btn.querySelector('.putt-main').textContent.trim();
+        const val = txt.includes('Chip') ? 0 : parseInt(txt) || 1;
+        if (val === r.putts) btn.classList.add('selected');
+      });
+      // Restore miss direction
+      const zone = r.miss_direction === 'on_target' ? 'center' : r.miss_direction;
+      if (zone) selectWedge(zone, zone === 'center' ? 'On Target' : zone.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+    }
+    buildDots();
+    updateHeader();
+  }
+
+  /* ── RESET FORM INPUTS — no defaults pre-selected ── */
+  function resetInputs() {
+    selectedProx = 6;
+    updateProximity(6);
+    document.getElementById('proximity-slider').value = 6;
+
+    // Reset miss compass — no selection
+    allZones.forEach(z => {
+      const w = document.getElementById(z === 'center' ? 'center-btn' : 'w-' + z);
+      const o = document.getElementById('o-' + z);
+      const l = document.getElementById('lbl-' + z);
+      if (w) w.classList.remove('selected');
+      if (o) o.classList.remove('selected');
+      if (l) l.classList.remove('selected');
+    });
+    document.getElementById('miss-value').textContent = '—';
+    document.getElementById('miss-value').classList.remove('active');
+    document.getElementById('miss-dot').classList.remove('visible');
+
+    // Reset putts — no default selection
+    document.querySelectorAll('.putt-btn').forEach(b => b.classList.remove('selected'));
+  }
+
+  /* ── GET CURRENT MISS DIRECTION ── */
+  function getSelectedZone() {
+    for (const z of allZones) {
+      const el = document.getElementById(z === 'center' ? 'center-btn' : 'w-' + z);
+      if (el && el.classList.contains('selected')) return z === 'center' ? 'on_target' : z;
+    }
+    return 'on_target';
+  }
+
+  function getSelectedPutts() {
+    const sel = document.querySelector('.putt-btn.selected');
+    if (!sel) return 1;
+    const text = sel.querySelector('.putt-main').textContent.trim();
+    if (text === 'Chip\nIn' || text.includes('Chip')) return 0;
+    return parseInt(text) || 1;
+  }
+
+  /* ── LOG SHOT ── */
+  function logShot() {
+    results[current] = {
+      shot_type:      SHOTS[current].name,
+      pin_position:   SHOTS[current].pin.replace(' Pin', ''),
+      proximity_ft:   selectedProx >= 31 ? 31 : selectedProx,
+      putts:          getSelectedPutts(),
+      miss_direction: getSelectedZone(),
+    };
+
+    state[current] = 'done';
+
+    const proxText = selectedProx >= 31 ? '>30ft' : selectedProx + 'ft';
+    showToast(`Shot ${current + 1} logged · ${proxText}`);
+
+    updateFinishBtn();
+    updateStatStrip();
+
+    const nextIdx = findNext(current + 1);
+    if (nextIdx !== -1) {
+      current = nextIdx;
+      state[current] = 'current';
+      resetInputs();
+      buildDots();
+      updateHeader();
+    } else {
+      // No more pending/skipped — all done, prompt finish
+      buildDots();
+      updateHeader();
+      const allDone = state.every(s => s === 'done');
+      if (allDone) finishRound();
+    }
+  }
+
+  /* ── SAVE ROUND ── */
+  async function saveRound() {
+    const saveBtn = document.querySelector('#modal-actions .modal-btn-save');
+    if (saveBtn) { saveBtn.textContent = 'Saving...'; saveBtn.disabled = true; }
+
+    try {
+      const res = await fetch('/api/shortgame/round', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challenge: PRESET_NAMES[presetId],
+          order,
+          shots: results.filter(Boolean),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      window.location.href = `results-round.html?id=${data.round_id}`;
+    } catch (err) {
+      console.error(err);
+      if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }
+      showToast('Save failed — check connection');
+      dismissModal();
+    }
+  }
+
+  /* ── SKIP SHOT ── */
+  function skipShot() {
+    state[current] = 'skipped';
+    buildDots();
+    const nextIdx = findNext(current + 1);
+    if (nextIdx !== -1) {
+      current = nextIdx;
+      state[current] = 'current';
+      resetInputs();
+      updateHeader();
+      showToast(`Shot ${current} skipped — come back to it`);
+    } else {
+      // Only skipped shots remain — wrap back to first skipped
+      const firstSkipped = state.indexOf('skipped');
+      if (firstSkipped !== -1) {
+        navigateTo(firstSkipped);
+        const count = state.filter(s => s === 'skipped').length;
+        showToast(`${count} skipped shot${count > 1 ? 's' : ''} remaining`);
+      }
+    }
+  }
+
+  /* ── MODAL HELPERS ── */
+  function openModal() {
+    document.getElementById('modal-backdrop').classList.add('visible');
+  }
+
+  function closeModal(e) {
+    // Close if clicking backdrop itself (not the modal sheet)
+    if (e && e.target !== document.getElementById('modal-backdrop')) return;
+    document.getElementById('modal-backdrop').classList.remove('visible');
+  }
+
+  function dismissModal() {
+    document.getElementById('modal-backdrop').classList.remove('visible');
+  }
+
+  /* ── EXIT ROUND ── */
+  function exitRound() {
+    const done = state.filter(s => s === 'done').length;
+    if (done === 0) {
+      window.location.href = 'challenge-setup.html';
+      return;
+    }
+
+    document.getElementById('modal-title').textContent = 'Exit Round?';
+    document.getElementById('modal-sub').textContent =
+      `${done} shot${done !== 1 ? 's' : ''} logged will be lost.`;
+    document.getElementById('modal-shot-list').innerHTML = '';
+    document.getElementById('modal-actions').innerHTML = `
+      <button class="modal-btn modal-btn-cancel" onclick="dismissModal()">Cancel</button>
+      <button class="modal-btn modal-btn-exit"   onclick="window.location.href='challenge-setup.html'">Exit</button>
+    `;
+    openModal();
+  }
+
+  /* ── FINISH ROUND ── */
+  function finishRound() {
+    const done    = results.filter(Boolean).length;
+    const total   = SHOTS.length;
+    const skipped = state.filter(s => s === 'skipped').length;
+    const pending = state.filter(s => s === 'pending' || s === 'current').length;
+    const unlogged = skipped + pending;
+
+    if (done === 0) return;
+
+    const allDone = unlogged === 0;
+
+    document.getElementById('modal-title').textContent = allDone ? 'Save Round?' : 'Save Partial Round?';
+
+    if (allDone) {
+      document.getElementById('modal-sub').textContent =
+        `All ${total} shots logged. Tap any shot to edit before saving.`;
+    } else {
+      document.getElementById('modal-sub').textContent =
+        `${done} of ${total} shots logged. ${unlogged} shot${unlogged !== 1 ? 's' : ''} (${skipped} skipped, ${pending} not started) will not be saved.`;
+    }
+
+    // Build shot list
+    const listEl = document.getElementById('modal-shot-list');
+    listEl.innerHTML = '';
+    SHOTS.forEach((shot, i) => {
+      const s   = state[i];
+      const row = document.createElement('div');
+      row.className = 'modal-shot-row';
+      row.innerHTML = `
+        <div class="modal-shot-num">${i + 1}</div>
+        <div class="modal-shot-name">${shot.name} · ${shot.pin}</div>
+        <div class="modal-shot-status ${s === 'done' ? 'done' : s === 'skipped' ? 'skipped' : 'pending'}">
+          ${s === 'done' ? '✓ logged' : s === 'skipped' ? '— skipped' : '· empty'}
+        </div>
+        ${allDone ? '<div class="modal-shot-edit">edit ›</div>' : ''}
+      `;
+      // Tapping a shot dismisses modal and navigates to it
+      row.onclick = () => {
+        dismissModal();
+        if (state[current] === 'current') state[current] = 'pending';
+        navigateTo(i);
+      };
+      listEl.appendChild(row);
+    });
+
+    document.getElementById('modal-actions').innerHTML = `
+      <button class="modal-btn modal-btn-cancel" onclick="dismissModal()">Back</button>
+      <button class="modal-btn modal-btn-save"   onclick="saveRound()">Save ${done} Shot${done !== 1 ? 's' : ''}</button>
+    `;
+    openModal();
+  }
+
+  /* ── UPDATE FINISH BUTTON STATE ── */
+  function updateFinishBtn() {
+    const done = results.filter(Boolean).length;
+    const btn  = document.getElementById('finish-btn');
+    if (done > 0) btn.classList.add('active');
+    else          btn.classList.remove('active');
+  }
+
+  /* ── COMPASS ── */
+  function sizeCompass() {
+    const bodyW = Math.min(window.innerWidth, 430) - 32;
+    const size  = Math.min(bodyW - 80 - 12, 180);
+    const wrap  = document.getElementById('compass-wrap');
+    const svg   = document.getElementById('compass-svg');
+    wrap.style.width  = size + 'px';
+    wrap.style.height = size + 'px';
+    svg.style.width   = size + 'px';
+    svg.style.height  = size + 'px';
+  }
+
+  function selectWedge(id, label) {
+    allZones.forEach(z => {
+      const w = document.getElementById(z === 'center' ? 'center-btn' : 'w-' + z);
+      const o = document.getElementById('o-' + z);
+      const l = document.getElementById('lbl-' + z);
+      if (w) w.classList.remove('selected');
+      if (o) o.classList.remove('selected');
+      if (l) l.classList.remove('selected');
+    });
+    const target  = document.getElementById(id === 'center' ? 'center-btn' : 'w-' + id);
+    const overlay = document.getElementById('o-' + id);
+    const lbl     = document.getElementById('lbl-' + id);
+    if (target)  target.classList.add('selected');
+    if (overlay) overlay.classList.add('selected');
+    if (lbl)     lbl.classList.add('selected');
+
+    document.getElementById('miss-value').textContent = label;
+    document.getElementById('miss-value').classList.add('active');
+    document.getElementById('miss-dot').classList.add('visible');
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  /* ── PUTTS ── */
+  function selectPutt(el) {
+    document.querySelectorAll('.putt-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  /* ── PROXIMITY ── */
+  function updateProximity(val) {
+    val = parseInt(val);
+    selectedProx = val;
+    const numEl  = document.getElementById('prox-val');
+    const badge  = document.getElementById('prox-badge');
+    const slider = document.getElementById('proximity-slider');
+
+    const fillPct = (val / 31) * 100;
+    slider.style.background = `linear-gradient(to right, #3ddc84 0%, #3ddc84 ${fillPct}%, #1e2d22 ${fillPct}%, #1e2d22 100%)`;
+
+    if (val >= 31) {
+      numEl.innerHTML = '>30<span class="unit">FT</span>';
+      badge.textContent = '● Long Putt';
+      badge.className = 'prox-zone-badge zone-red';
+    } else {
+      numEl.innerHTML = val + '<span class="unit">FT</span>';
+      if (val <= 6) {
+        badge.textContent = '● Makeable';
+        badge.className = 'prox-zone-badge zone-green';
+      } else if (val <= 15) {
+        badge.textContent = '● Challenging';
+        badge.className = 'prox-zone-badge zone-yellow';
+      } else {
+        badge.textContent = '● Long Putt';
+        badge.className = 'prox-zone-badge zone-red';
+      }
+    }
+
+    const pct  = Math.min(val, 30) / 30;
+    const ball = document.getElementById('ball-svg');
+    const core = document.getElementById('ball-core');
+    const cx   = Math.min(45 + 4 + pct * 36, 86);
+    const cy   = Math.max(45 - 4 - pct * 32, 7);
+    ball.setAttribute('cx', cx); core.setAttribute('cx', cx);
+    ball.setAttribute('cy', cy); core.setAttribute('cy', cy);
+  }
+
+  /* ── TOAST ── */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ── INIT ── */
+  window.addEventListener('DOMContentLoaded', () => {
+    buildDots();
+    updateHeader();
+    sizeCompass();
+    updateProximity(6);
+    initDotInteractions();
+  });
+</script>
+</body>
+</html>

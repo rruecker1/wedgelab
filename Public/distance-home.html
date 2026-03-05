@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 20px) 22px env(safe-area-inset-bottom, 32px);
+    max-width: 430px; margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header { padding: 12px 0 24px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .app-name { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; letter-spacing: 0.04em; }
+  .app-sub  { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .header-right { display: flex; gap: 10px; align-items: center; padding-bottom: 4px; }
+  .nav-icon-btn { background: none; border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); cursor: pointer; -webkit-tap-highlight-color: transparent; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+  /* ── Snapshot strip ── */
+  .snapshot { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 0; margin-bottom: 24px; }
+  .snap-item { flex: 1; text-align: center; position: relative; }
+  .snap-item + .snap-item::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+  .snap-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; }
+  .snap-val.pos { color: var(--green); }
+  .snap-val.neg { color: var(--red); }
+  .snap-val.neu { color: var(--text); }
+  .snap-lbl { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+
+  /* ── Section header ── */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+
+  /* ── Test cards ── */
+  .test-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+  .test-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 16px 18px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .test-card:active { background: var(--surface2); }
+  .test-card.selected { border-color: var(--green-dim); background: var(--surface2); }
+  .test-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .test-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .test-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.04em; }
+  .test-sg { text-align: right; }
+  .test-sg-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; }
+  .test-sg-val.pos  { color: var(--green); }
+  .test-sg-val.neg  { color: var(--red); }
+  .test-sg-val.none { color: var(--muted); font-size: 20px; }
+  .test-sg-lbl { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
+
+  /* Distance pills */
+  .dist-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .dist-pill {
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.04em;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 20px; padding: 3px 8px;
+  }
+  .test-card.selected .dist-pill { border-color: rgba(61,220,132,0.2); }
+
+  /* ── Order toggle + Start — appears when card selected ── */
+  .card-actions {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+    display: none; flex-direction: column; gap: 10px;
+  }
+  .test-card.selected .card-actions { display: flex; }
+
+  .order-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+  .order-btn {
+    flex: 1; padding: 7px; border-radius: 8px; border: none;
+    background: none; color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.05em; cursor: pointer;
+    transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+  }
+  .order-btn.active { background: var(--surface2); color: var(--green); outline: 1px solid var(--green-dim); }
+
+  .reps-row { display: flex; align-items: center; gap: 10px; }
+  .reps-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.06em; flex-shrink: 0; }
+  .reps-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; flex: 1; }
+  .reps-btn {
+    flex: 1; padding: 6px 0; border-radius: 7px; border: none;
+    background: none; color: var(--muted); font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; cursor: pointer; transition: all 0.18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .reps-btn.active { background: var(--surface2); color: var(--green); outline: 1px solid var(--green-dim); }
+
+  .delete-test-btn {
+    width: 100%; padding: 10px; background: none;
+    border: 1px solid var(--border); border-radius: 14px;
+    color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.06em; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; transition: all 0.2s;
+  }
+  .delete-test-btn:active { border-color: var(--red); color: var(--red); }
+
+  .start-btn {
+    width: 100%; padding: 16px; background: var(--green);
+    border: none; border-radius: 14px; color: #071209;
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px;
+    letter-spacing: 0.1em; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(61,220,132,0.22);
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+  .start-btn:active { opacity: 0.85; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: auto; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+
+  /* Empty state */
+  .empty-snap { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: center; padding: 6px 0 2px; }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="app-sub">Wedge Lab</div>
+      <div class="app-name">Practice</div>
+    </div>
+
+  </div>
+
+  <!-- Snapshot strip -->
+  <div class="snapshot">
+    <div class="snap-item">
+      <div class="snap-val" id="snap-best">—</div>
+      <div class="snap-lbl">Best SG</div>
+    </div>
+    <div class="snap-item">
+      <div class="snap-val neu" id="snap-tests">0</div>
+      <div class="snap-lbl">Tests Taken</div>
+    </div>
+    <div class="snap-item">
+      <div class="snap-val" id="snap-trend">—</div>
+      <div class="snap-lbl">Last 5 Trend</div>
+    </div>
+  </div>
+
+  <!-- Test list -->
+  <div class="section-head">
+    <span class="section-title">Select a Test</span>
+  </div>
+  <div class="test-list" id="test-list"></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item active" href="distance-home.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item" href="distance-progress.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+    <a class="nav-item" href="distance-settings.html">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Settings</div>
+    </a>
+  </div>
+
+<script src="wedgelab-engine.js"></script>
+<script>
+'use strict';
+
+// ── Shared API helper ─────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+// Personal best helper (pure JS — no Dropbox needed)
+function getPersonalBest(sessions, testId) {
+  const matching = sessions.filter(s => s.testId === testId);
+  if (!matching.length) return null;
+  return Math.max(...matching.map(s => s.totalSG));
+}
+
+let selectedTestId = null;
+let selectedOrder  = {};
+let selectedReps   = {};
+
+// ── Load snapshot stats ────────────────────────────────────────
+function loadSnapshot() {
+  const sessions = _allSessions.filter(s => s.completedAt);
+
+  if (sessions.length) {
+    const best = Math.max(...sessions.map(s => s.totalSG));
+    const bestEl = document.getElementById('snap-best');
+    bestEl.textContent = WedgeLab.formatSG(best);
+    bestEl.className   = 'snap-val ' + WedgeLab.sgClass(best);
+  }
+
+  document.getElementById('snap-tests').textContent = sessions.length;
+
+  if (sessions.length >= 2) {
+    const sorted   = [...sessions].sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+    const last5    = sorted.slice(-5);
+    const prev5    = sorted.slice(-10, -5);
+    const last5avg = last5.reduce((s, x) => s + x.totalSG, 0) / last5.length;
+    const trendEl  = document.getElementById('snap-trend');
+
+    if (prev5.length) {
+      const prev5avg = prev5.reduce((s, x) => s + x.totalSG, 0) / prev5.length;
+      const diff     = parseFloat((last5avg - prev5avg).toFixed(2));
+      trendEl.textContent = (diff >= 0 ? '↑ +' : '↓ ') + diff;
+      trendEl.className   = 'snap-val ' + (diff >= 0 ? 'pos' : 'neg');
+    } else {
+      trendEl.textContent = WedgeLab.formatSG(last5avg);
+      trendEl.className   = 'snap-val ' + WedgeLab.sgClass(last5avg);
+    }
+  }
+}
+
+// ── Render test cards ──────────────────────────────────────────
+function renderTests() {
+  const list    = document.getElementById('test-list');
+  const hidden  = window._hiddenTests || [];
+  const allTests = [...WedgeLab.TESTS, ..._customTests].filter(t => !hidden.includes(t.id));
+
+  list.innerHTML = allTests.map(test => {
+    const sessions  = _allSessions.filter(s => s.testId === test.id);
+    const completed = sessions.filter(s => s.completedAt);
+    const pb        = getPersonalBest(_allSessions, test.id);
+    const shotCount = test.isCustom ? test.distances.length : WedgeLab.getTestShotCount(test.id);
+
+    const seq = test.isCustom ? test.distances : WedgeLab.getTestSequence(test.id, 'sequential');
+    const pillsArr = seq.slice(0, 5).map(d => `<span class="dist-pill">${d}</span>`);
+    if (seq.length > 5) pillsArr.push(`<span class="dist-pill">+${seq.length - 5}</span>`);
+    const pills = pillsArr.join('');
+
+    let sgValHTML;
+    if (pb !== null) {
+      const cls = WedgeLab.sgClass(pb);
+      sgValHTML = `<div class="test-sg-val ${cls}">${WedgeLab.formatSG(pb)}</div>
+                   <div class="test-sg-lbl">Best SG</div>`;
+    } else {
+      sgValHTML = `<div class="test-sg-val none">—</div>
+                   <div class="test-sg-lbl">No data</div>`;
+    }
+
+    const metaStr = `${shotCount} shots · ${test.fromYards}–${test.toYards} yds` +
+      (completed.length ? ` · ${completed.length}× played` : '');
+
+    const isSelected = selectedTestId === test.id;
+    const order      = selectedOrder[test.id] || 'sequential';
+    const reps       = selectedReps[test.id]  || 1;
+
+    return `
+      <div class="test-card ${isSelected ? 'selected' : ''}" id="card-${test.id}" onclick="selectTest('${test.id}')">
+        <div class="test-card-top">
+          <div>
+            <div class="test-name">${test.name}</div>
+            <div class="test-meta">${metaStr}</div>
+          </div>
+          <div class="test-sg">${sgValHTML}</div>
+        </div>
+        <div class="dist-pills">${pills}</div>
+        <div class="card-actions">
+          <div class="order-toggle">
+            <button class="order-btn ${order === 'sequential' ? 'active' : ''}"
+              onclick="setOrder(event, '${test.id}', 'sequential')">Sequential</button>
+            <button class="order-btn ${order === 'random' ? 'active' : ''}"
+              onclick="setOrder(event, '${test.id}', 'random')">Random</button>
+          </div>
+          <div class="reps-row">
+            <span class="reps-label">Reps:</span>
+            <div class="reps-toggle">
+              ${[1,2,3,4].map(r => `<button class="reps-btn ${reps === r ? 'active' : ''}"
+                onclick="setReps(event, '${test.id}', ${r})">${r}</button>`).join('')}
+            </div>
+          </div>
+          <button class="start-btn" onclick="startTest(event, '${test.id}')">Start Test</button>
+          <button class="delete-test-btn" onclick="deleteTest(event, '${test.id}', ${!!test.isCustom})">✕ Remove Test</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectTest(testId) {
+  selectedTestId = selectedTestId === testId ? null : testId;
+  if (!selectedOrder[testId]) selectedOrder[testId] = 'sequential';
+  renderTests();
+}
+function setOrder(e, testId, order) { e.stopPropagation(); selectedOrder[testId] = order; renderTests(); }
+function setReps(e, testId, reps)   { e.stopPropagation(); selectedReps[testId]  = reps;  renderTests(); }
+
+async function deleteTest(e, testId, isCustom) {
+  e.stopPropagation();
+  if (!confirm('Remove this test?')) return;
+  try {
+    if (isCustom) {
+      _customTests = _customTests.filter(t => t.id !== testId);
+      await api('POST', '/api/distance/custom-tests', { tests: _customTests });
+    } else {
+      const hidden = window._hiddenTests || [];
+      if (!hidden.includes(testId)) hidden.push(testId);
+      window._hiddenTests = hidden;
+      await api('POST', '/api/distance/hidden-tests', { hidden });
+    }
+    selectedTestId = null;
+    renderTests();
+  } catch (err) {
+    console.error('Delete failed:', err);
+    alert('Failed to delete — check connection');
+  }
+}
+
+function startTest(e, testId) {
+  e.stopPropagation();
+  const order = selectedOrder[testId] || 'sequential';
+  const reps  = selectedReps[testId]  || 1;
+  window.location.href = `distance-active.html?test=${testId}&order=${order}&reps=${reps}`;
+}
+
+// ── Init ──────────────────────────────────────────────────────
+let _allSessions = [];
+let _customTests = [];
+
+async function init() {
+  try {
+    const [histRes, customRes, hiddenRes] = await Promise.all([
+      api('GET', '/api/distance/history'),
+      api('GET', '/api/distance/custom-tests'),
+      api('GET', '/api/distance/hidden-tests'),
+    ]);
+    _allSessions        = histRes.sessions || [];
+    _customTests        = customRes.tests  || [];
+    window._hiddenTests = hiddenRes.hidden || [];
+  } catch (err) {
+    console.error('Load failed:', err);
+  }
+  loadSnapshot();
+  renderTests();
+}
+
+init();
+</script>
+</body>
+</html>

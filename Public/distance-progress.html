@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab — Progress</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 22px env(safe-area-inset-bottom, 32px);
+    max-width: 430px; margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header { padding: 12px 0 20px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .app-sub  { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+  .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; letter-spacing: 0.04em; }
+
+  /* ── Timeframe toggle ── */
+  .timeframe-row { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 3px; gap: 3px; margin-bottom: 20px; }
+  .tf-btn { flex: 1; padding: 8px 4px; border-radius: 9px; border: none; background: none; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.06em; cursor: pointer; transition: all 0.18s; -webkit-tap-highlight-color: transparent; text-transform: uppercase; }
+  .tf-btn.active { background: var(--surface2); color: var(--green); outline: 1px solid var(--green-dim); }
+
+  /* ── Stat strip ── */
+  .stat-strip { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 0; margin-bottom: 20px; }
+  .stat-item { flex: 1; text-align: center; position: relative; }
+  .stat-item + .stat-item::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px; background: var(--border); }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; }
+  .stat-val.pos  { color: var(--green); }
+  .stat-val.neg  { color: var(--red); }
+  .stat-val.neu  { color: var(--text); }
+  .stat-val.muted { color: var(--muted); }
+  .stat-lbl { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+
+  /* ── Section header ── */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; margin-top: 4px; }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .section-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+
+  /* ── SG over time chart ── */
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; width: 100%; height: 140px; }
+  canvas { width: 100% !important; height: 140px !important; }
+  .chart-empty { height: 140px; display: flex; align-items: center; justify-content: center; }
+  .chart-empty p { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-align: center; line-height: 1.8; }
+
+  /* ── Distance bucket bars ── */
+  .buckets-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 20px; }
+  .bucket-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bucket-row:last-child { margin-bottom: 0; }
+  .bucket-range { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); width: 52px; flex-shrink: 0; }
+  .bucket-bar-wrap { flex: 1; height: 14px; background: var(--surface2); border-radius: 8px; overflow: hidden; position: relative; }
+  .bucket-bar { height: 100%; border-radius: 8px; transition: width 0.5s ease; min-width: 2px; }
+  .bucket-bar.pos { background: var(--green); }
+  .bucket-bar.neg { background: var(--red); }
+  .bucket-sg { font-family: 'DM Mono', monospace; font-size: 9px; width: 44px; text-align: right; flex-shrink: 0; }
+  .bucket-sg.pos  { color: var(--green); }
+  .bucket-sg.neg  { color: var(--red); }
+  .bucket-sg.zero { color: var(--muted); }
+  .bucket-n { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); width: 22px; text-align: right; flex-shrink: 0; }
+
+  /* ── Recent tests ── */
+  .history-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+  .history-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: background 0.15s; cursor: pointer; }
+  .history-card:active { background: var(--surface2); }
+  .history-date { text-align: center; flex-shrink: 0; width: 30px; }
+  .history-date-day { font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; color: var(--text); }
+  .history-date-mon { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .history-info { flex: 1; min-width: 0; }
+  .history-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .history-sg { text-align: right; flex-shrink: 0; }
+  .history-sg-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; }
+  .history-sg-val.pos  { color: var(--green); }
+  .history-sg-val.neg  { color: var(--red); }
+  .history-sg-val.zero { color: var(--muted); }
+  .history-pb { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--yellow); text-align: right; margin-top: 2px; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 40px 20px; }
+  .empty-state p { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); line-height: 2; }
+  .empty-cta { display: inline-block; margin-top: 16px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--green); border: 1px solid var(--green-dim); border-radius: 20px; padding: 8px 18px; text-decoration: none; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: auto; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon  { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="app-sub">Wedge Lab</div>
+      <div class="page-title">Progress</div>
+    </div>
+  </div>
+
+  <!-- Timeframe toggle -->
+  <div class="timeframe-row">
+    <button class="tf-btn" data-tf="all"  onclick="setTimeframe('all')">All Time</button>
+    <button class="tf-btn" data-tf="90d"  onclick="setTimeframe('90d')">90 Days</button>
+    <button class="tf-btn" data-tf="30d"  onclick="setTimeframe('30d')">30 Days</button>
+    <button class="tf-btn active" data-tf="5t" onclick="setTimeframe('5t')">Last 5</button>
+  </div>
+
+  <!-- Stat strip -->
+  <div class="stat-strip">
+    <div class="stat-item">
+      <div class="stat-val muted" id="stat-best">—</div>
+      <div class="stat-lbl">Best SG</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val neu" id="stat-tests">0</div>
+      <div class="stat-lbl">Tests</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val muted" id="stat-avg">—</div>
+      <div class="stat-lbl">Avg SG</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val muted" id="stat-miss">—</div>
+      <div class="stat-lbl">Avg Miss</div>
+    </div>
+  </div>
+
+  <!-- SG over time -->
+  <div class="section-head">
+    <span class="section-title">SG Over Time</span>
+    <span class="section-sub" id="chart-sub"></span>
+  </div>
+  <div class="chart-card">
+    <div class="chart-wrap" id="chart-wrap">
+      <div class="chart-empty"><p>Complete your first test<br>to see your trend</p></div>
+    </div>
+  </div>
+
+  <!-- SG by distance -->
+  <div class="section-head">
+    <span class="section-title">SG by Distance</span>
+    <span class="section-sub" id="bucket-sub"></span>
+  </div>
+  <div class="buckets-card" id="buckets-card">
+    <div class="chart-empty"><p>No data yet</p></div>
+  </div>
+
+  <!-- Recent tests -->
+  <div class="section-head" style="margin-top:20px;">
+    <span class="section-title">Recent Tests</span>
+  </div>
+  <div class="history-list" id="history-list"></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item" href="distance-home.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item active" href="distance-progress.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+    <a class="nav-item" href="distance-settings.html">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Settings</div>
+    </a>
+  </div>
+
+<script src="wedgelab-engine.js"></script>
+<script>
+'use strict';
+
+async function api(method, path) {
+  const res = await fetch(path, { method });
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+function filterByTimeframe(sessions, tf) {
+  if (tf === 'all') return sessions;
+  if (tf === '5t')  return sessions.slice(-5);
+  const days   = tf === '90d' ? 90 : 30;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return sessions.filter(s => new Date(s.completedAt || s.date) >= cutoff);
+}
+
+let currentTf = '5t';
+
+// ── Timeframe ──────────────────────────────────────────────────
+function setTimeframe(tf) {
+  currentTf = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tf === tf);
+  });
+  renderAll();
+}
+
+// ── Main render ────────────────────────────────────────────────
+function renderAll() {
+  const sessions = filterByTimeframe(
+      _allSessions.filter(s => s.completedAt || s.date), currentTf
+    ).sort((a, b) => new Date(a.completedAt || a.date) - new Date(b.completedAt || b.date));
+
+  renderStats(sessions);
+  renderChart(sessions);
+  renderBuckets(sessions);
+  renderHistory(sessions);
+}
+
+// ── Stat strip ─────────────────────────────────────────────────
+function renderStats(sessions) {
+  const bestEl = document.getElementById('stat-best');
+  const testsEl = document.getElementById('stat-tests');
+  const avgEl  = document.getElementById('stat-avg');
+
+  testsEl.textContent = sessions.length;
+
+  const missEl = document.getElementById('stat-miss');
+
+  if (!sessions.length) {
+    bestEl.textContent = '—'; bestEl.className = 'stat-val muted';
+    avgEl.textContent  = '—'; avgEl.className  = 'stat-val muted';
+    missEl.textContent = '—'; missEl.className = 'stat-val muted';
+    return;
+  }
+
+  const best = Math.max(...sessions.map(s => s.totalSG));
+  bestEl.textContent = WedgeLab.formatSG(best);
+  bestEl.className   = 'stat-val ' + WedgeLab.sgClass(best);
+
+  const avg = sessions.reduce((s, x) => s + x.totalSG, 0) / sessions.length;
+  avgEl.textContent = WedgeLab.formatSG(parseFloat(avg.toFixed(2)));
+  avgEl.className   = 'stat-val ' + WedgeLab.sgClass(avg);
+
+  // Average miss across all sessions (sessions with dispersion data only)
+  const sessionsWithMiss = sessions.filter(s => s.avgMissYards !== undefined);
+  if (sessionsWithMiss.length) {
+    const avgMiss = sessionsWithMiss.reduce((s, x) => s + x.avgMissYards, 0) / sessionsWithMiss.length;
+    missEl.textContent = parseFloat(avgMiss.toFixed(1)) + 'y';
+    missEl.className   = 'stat-val neu';
+  }
+}
+
+// ── SG over time chart (canvas) ────────────────────────────────
+function renderChart(sessions) {
+  const wrap = document.getElementById('chart-wrap');
+  document.getElementById('chart-sub').textContent =
+    sessions.length ? `${sessions.length} sessions` : '';
+
+  if (sessions.length < 2) {
+    wrap.innerHTML = `<div class="chart-empty"><p>${
+      sessions.length === 0
+        ? 'Complete your first test\nto see your trend'
+        : 'Complete one more test\nto see your trend'
+    }</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = '<canvas id="sg-chart"></canvas>';
+  const canvas = document.getElementById('sg-chart');
+  const ctx    = canvas.getContext('2d');
+
+  // HiDPI
+  const dpr = window.devicePixelRatio || 1;
+  const W   = wrap.offsetWidth;
+  const H   = 140;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const values = sessions.map(s => s.totalSG);
+  const minV   = Math.min(...values, 0);
+  const maxV   = Math.max(...values, 0);
+  const range  = maxV - minV || 1;
+
+  const padL = 10, padR = 10, padT = 16, padB = 20;
+  const cW   = W - padL - padR;
+  const cH   = H - padT - padB;
+
+  function xPos(i) { return padL + (i / (values.length - 1)) * cW; }
+  function yPos(v) { return padT + (1 - (v - minV) / range) * cH; }
+
+  const zeroY = yPos(0);
+
+  // Area fill — green above zero, red below
+  values.forEach((v, i) => {
+    if (i === values.length - 1) return;
+    const x1 = xPos(i), y1 = yPos(v);
+    const x2 = xPos(i + 1), y2 = yPos(values[i + 1]);
+
+    // Check if segment crosses zero
+    const crossesZero = (v >= 0) !== (values[i+1] >= 0);
+
+    if (crossesZero) {
+      // Split at zero crossing
+      const t   = Math.abs(v) / (Math.abs(v) + Math.abs(values[i+1]));
+      const xMid = x1 + t * (x2 - x1);
+
+      // First part
+      ctx.beginPath();
+      ctx.moveTo(x1, zeroY); ctx.lineTo(x1, y1);
+      ctx.lineTo(xMid, zeroY); ctx.closePath();
+      ctx.fillStyle = v >= 0 ? 'rgba(61,220,132,0.15)' : 'rgba(224,82,82,0.15)';
+      ctx.fill();
+
+      // Second part
+      ctx.beginPath();
+      ctx.moveTo(xMid, zeroY); ctx.lineTo(x2, y2);
+      ctx.lineTo(x2, zeroY); ctx.closePath();
+      ctx.fillStyle = values[i+1] >= 0 ? 'rgba(61,220,132,0.15)' : 'rgba(224,82,82,0.15)';
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(x1, zeroY); ctx.lineTo(x1, y1);
+      ctx.lineTo(x2, y2); ctx.lineTo(x2, zeroY); ctx.closePath();
+      ctx.fillStyle = v >= 0 ? 'rgba(61,220,132,0.15)' : 'rgba(224,82,82,0.15)';
+      ctx.fill();
+    }
+  });
+
+  // Zero line (dashed)
+  ctx.beginPath();
+  ctx.setLineDash([4, 4]);
+  ctx.moveTo(padL, zeroY); ctx.lineTo(padL + cW, zeroY);
+  ctx.strokeStyle = 'rgba(107,133,111,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Data line
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    i === 0 ? ctx.moveTo(xPos(i), yPos(v)) : ctx.lineTo(xPos(i), yPos(v));
+  });
+  ctx.strokeStyle = 'rgba(61,220,132,0.8)';
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+
+  // Data points
+  values.forEach((v, i) => {
+    ctx.beginPath();
+    ctx.arc(xPos(i), yPos(v), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = WedgeLab.sgClass(v) === 'pos' ? '#3ddc84' : '#e05252';
+    ctx.fill();
+    ctx.strokeStyle = '#0e1a12';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // SG labels on each point
+  ctx.font = '9px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  values.forEach((v, i) => {
+    const label = WedgeLab.formatSG(v);
+    const y     = yPos(v);
+    const above = y > padT + 18;
+    ctx.fillStyle = WedgeLab.sgClass(v) === 'pos' ? '#3ddc84' : '#e05252';
+    ctx.fillText(label, xPos(i), above ? y - 10 : y + 18);
+  });
+
+  // Date labels at bottom
+  ctx.fillStyle = '#6b856f';
+  ctx.font = '8px DM Mono, monospace';
+  sessions.forEach((s, i) => {
+    const d = WedgeLab.formatDate(s.completedAt);
+    ctx.fillText(`${d.mon} ${d.day}`, xPos(i), H - 4);
+  });
+}
+
+// ── Distance bucket bars ───────────────────────────────────────
+function renderBuckets(sessions) {
+  const card = document.getElementById('buckets-card');
+  document.getElementById('bucket-sub').textContent =
+    sessions.length ? `${sessions.reduce((s, x) => s + x.shots.length, 0)} shots` : '';
+
+  if (!sessions.length) {
+    card.innerHTML = '<div class="chart-empty"><p>No data yet</p></div>';
+    return;
+  }
+
+  const allShots = sessions.flatMap(s => s.shots);
+  const buckets  = WedgeLab.calcBuckets(allShots);
+
+  if (!buckets.length) {
+    card.innerHTML = '<div class="chart-empty"><p>No data yet</p></div>';
+    return;
+  }
+
+  // Scale bar widths to max absolute SG
+  const maxAbs = Math.max(...buckets.map(b => Math.abs(b.avgSG)), 0.01);
+
+  card.innerHTML = buckets.map(b => {
+    const cls      = WedgeLab.sgClass(b.avgSG);
+    const barWidth = Math.round((Math.abs(b.avgSG) / maxAbs) * 100);
+    return `
+      <div class="bucket-row">
+        <div class="bucket-range">${b.range}y</div>
+        <div class="bucket-bar-wrap">
+          <div class="bucket-bar ${cls}" style="width:${barWidth}%"></div>
+        </div>
+        <div class="bucket-sg ${cls}">${WedgeLab.formatSG(b.avgSG)}</div>
+        <div class="bucket-n">${b.shotCount}x</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Recent tests list ──────────────────────────────────────────
+function renderHistory(sessions) {
+  const list = document.getElementById('history-list');
+  const reversed = [...sessions].reverse();  // most recent first
+
+  if (!reversed.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <p>No sessions yet.<br>Complete a test to start tracking your progress.</p>
+        <a class="empty-cta" href="distance-home.html">Start a Test →</a>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = reversed.map(s => {
+    const date   = WedgeLab.formatDate(s.completedAt);
+    const sgCls  = WedgeLab.sgClass(s.totalSG);
+    const pb     = (() => { const m = _allSessions.filter(x => x.testId === s.testId); return m.length ? Math.max(...m.map(x => x.totalSG)) : null; })();
+    const isPB   = pb !== null && s.totalSG >= pb;
+
+    return `
+      <div class="history-card" onclick="window.location.href='distance-post-test.html?session=${s.id}'">
+        <div class="history-date">
+          <div class="history-date-day">${date.day}</div>
+          <div class="history-date-mon">${date.mon}</div>
+        </div>
+        <div class="history-info">
+          <div class="history-name">${s.testName}</div>
+          <div class="history-meta">${s.shots.length} shots · ${s.order}${s.avgMissYards !== undefined ? " · avg miss " + s.avgMissYards + "y" : ""}</div>
+        </div>
+        <div class="history-sg">
+          <div class="history-sg-val ${sgCls}">${WedgeLab.formatSG(s.totalSG)}</div>
+          ${isPB ? '<div class="history-pb">🏆 PB</div>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+let _allSessions = [];
+
+async function init() {
+  try {
+    const res    = await api('GET', '/api/distance/history');
+    _allSessions = res.sessions || [];
+  } catch (err) {
+    console.error('Load failed:', err);
+  }
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>

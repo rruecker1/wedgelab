@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab — Results</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 22px env(safe-area-inset-bottom, 32px);
+    max-width: 430px; margin: 0 auto;
+  }
+
+  /* ── Topbar ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 20px; }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+  .topbar-name { font-size: 15px; font-weight: 600; }
+  .done-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: var(--muted); border: 1px solid var(--border); padding: 5px 14px; border-radius: 20px; background: none; cursor: pointer; text-decoration: none; display: inline-block; -webkit-tap-highlight-color: transparent; }
+
+  /* ── Hero card ── */
+  .hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 20px; margin-bottom: 12px; position: relative; overflow: hidden; }
+  .hero-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 22px 22px 0 0; }
+  .hero-accent.pos { background: var(--green); }
+  .hero-accent.neg { background: var(--red); }
+  .hero-accent.pb  { background: var(--yellow); }
+  .hero-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .hero-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .pb-badge { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--yellow); background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.3); border-radius: 20px; padding: 3px 10px; }
+  .hero-score-row { display: flex; align-items: flex-end; gap: 14px; margin-bottom: 16px; }
+  .hero-score { font-family: 'Bebas Neue', sans-serif; font-size: 84px; line-height: 1; letter-spacing: 0.02em; }
+  .hero-score.pos { color: var(--green); }
+  .hero-score.neg { color: var(--red); }
+  .hero-score.zero { color: var(--muted); }
+  .hero-score-meta { padding-bottom: 10px; }
+  .hero-score-sublabel { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .hero-shots { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* This test vs PB compare */
+  .pb-compare { display: flex; background: var(--surface2); border-radius: 12px; overflow: hidden; }
+  .pb-compare-item { flex: 1; text-align: center; padding: 10px 0; }
+  .pb-compare-item + .pb-compare-item { border-left: 1px solid var(--border); }
+  .pb-compare-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; }
+  .pb-compare-val.pos   { color: var(--green); }
+  .pb-compare-val.neg   { color: var(--red); }
+  .pb-compare-val.zero  { color: var(--muted); }
+  .pb-compare-val.muted { color: var(--muted); }
+  .pb-compare-val.neu   { color: var(--text); }
+  .pb-compare-lbl { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+
+  /* ── Section header ── */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; margin-top: 20px; }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .section-sub { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+
+  /* ── Shot list ── */
+  .shot-list-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; margin-bottom: 20px; }
+  .shot-list-header { display: grid; grid-template-columns: 26px 1fr 1fr 1fr 54px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .col-hd { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; text-align: center; }
+  .col-hd:first-child { text-align: left; }
+  .col-hd:last-child  { text-align: right; }
+
+  .shot-row { display: grid; grid-template-columns: 26px 1fr 1fr 1fr 54px; padding: 9px 14px; border-bottom: 1px solid var(--border); align-items: center; }
+  .shot-row:last-child { border-bottom: none; }
+
+  .shot-num  { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .shot-cell { font-family: 'Bebas Neue', sans-serif; font-size: 20px; text-align: center; line-height: 1; color: var(--text); }
+  .shot-cell .unit { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); }
+
+  .carry-exact { color: var(--green); }
+  .carry-close { color: var(--yellow); }
+  .carry-miss  { color: var(--red); }
+
+  .shot-miss { font-family: 'DM Mono', monospace; font-size: 11px; text-align: center; }
+  .shot-miss.exact { color: var(--green); }
+  .shot-miss.short { color: var(--red); }
+  .shot-miss.long  { color: var(--yellow); }
+
+  .shot-sg { font-family: 'Bebas Neue', sans-serif; font-size: 18px; text-align: right; }
+  .shot-sg.pos  { color: var(--green); }
+  .shot-sg.neg  { color: var(--red); }
+  .shot-sg.zero { color: var(--muted); }
+
+  /* ── CTAs ── */
+  .cta-btn { width: 100%; padding: 20px; background: var(--green); border: none; border-radius: 18px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 24px rgba(61,220,132,0.22); -webkit-tap-highlight-color: transparent; margin-bottom: 10px; display: block; text-align: center; text-decoration: none; transition: opacity 0.15s; }
+  .cta-btn:active { opacity: 0.85; }
+  .secondary-btn { width: 100%; padding: 14px; background: none; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; cursor: pointer; -webkit-tap-highlight-color: transparent; margin-bottom: 24px; display: block; text-align: center; text-decoration: none; }
+
+  /* Error */
+  .error-state { text-align: center; padding: 60px 20px; }
+  .error-state p { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); line-height: 1.8; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="wedgelab-engine.js"></script>
+<script>
+'use strict';
+
+async function api(method, path) {
+  const res = await fetch(path, { method });
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+const params    = new URLSearchParams(window.location.search);
+const sessionId = params.get('session');
+
+let _allSessions = [];
+
+async function init() {
+  try {
+    const res    = await api('GET', '/api/distance/history');
+    _allSessions = res.sessions || [];
+  } catch (err) {
+    console.error('Load failed:', err);
+  }
+  render();
+}
+
+function render() {
+  const app     = document.getElementById('app');
+  const session = sessionId
+    ? _allSessions.find(s => s.id === sessionId)
+    : null;
+
+  if (!session) {
+    app.innerHTML = `
+      <div class="error-state">
+        <p>Session not found.<br>It may have been cleared from storage.</p><br>
+        <a class="secondary-btn" href="distance-home.html">← Back to Tests</a>
+      </div>`;
+    return;
+  }
+
+  const sgCls  = WedgeLab.sgClass(session.totalSG);
+  const sgFmt  = WedgeLab.formatSG(session.totalSG);
+  const date   = WedgeLab.formatDate(session.completedAt);
+
+  // Personal best — exclude this session so comparison is meaningful
+  const prevSessions = _allSessions
+    .filter(s => s.testId === session.testId && s.completedAt && s.id !== session.id);
+  const prevBest  = prevSessions.length ? Math.max(...prevSessions.map(s => s.totalSG)) : null;
+  const isPB      = prevBest === null || session.totalSG > prevBest;
+  const accentCls = isPB && prevBest !== null ? 'pb' : sgCls === 'pos' ? 'pos' : 'neg';
+
+  const pbBestVal = prevBest !== null ? WedgeLab.formatSG(prevBest) : '—';
+  const pbBestCls = prevBest !== null ? WedgeLab.sgClass(prevBest) : 'muted';
+
+  // Shot rows
+  const shotRows = session.shots.map((s, i) => {
+    const absMiss  = Math.abs(s.missYards);
+    const carryCls = absMiss <= 1 ? 'carry-exact' : absMiss < 5 ? 'carry-close' : 'carry-miss';
+    const missCls  = s.missYards === 0 ? 'exact' : s.missYards < 0 ? 'short' : 'long';
+    const missStr  = s.missYards === 0 ? '±0' : (s.missYards > 0 ? '+' : '') + s.missYards;
+    const sgRowCls = WedgeLab.sgClass(s.sg);
+    return `
+      <div class="shot-row">
+        <div class="shot-num">${i + 1}</div>
+        <div class="shot-cell">${s.targetYards}<span class="unit">y</span></div>
+        <div class="shot-cell ${carryCls}">${s.carryYards}<span class="unit">y</span></div>
+        <div class="shot-miss ${missCls}">${missStr}y</div>
+        <div class="shot-sg ${sgRowCls}">${WedgeLab.formatSG(s.sg)}</div>
+      </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-eyebrow">Test Complete · ${date.full}</div>
+        <div class="topbar-name">${session.testName}</div>
+      </div>
+      <a class="done-btn" href="distance-home.html">✕ Done</a>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-accent ${accentCls}"></div>
+      <div class="hero-top">
+        <div class="hero-label">Total Strokes Gained</div>
+        ${isPB && prevBest !== null ? '<div class="pb-badge">🏆 New PB</div>' : ''}
+      </div>
+      <div class="hero-score-row">
+        <div class="hero-score ${sgCls}">${sgFmt}</div>
+        <div class="hero-score-meta">
+          <div class="hero-score-sublabel">vs PGA Tour avg</div>
+          <div class="hero-shots">${session.shots.length} shots · ${session.order}</div>
+        </div>
+      </div>
+      <div class="pb-compare">
+        <div class="pb-compare-item">
+          <div class="pb-compare-val ${sgCls}">${sgFmt}</div>
+          <div class="pb-compare-lbl">Strokes Gained</div>
+        </div>
+        <div class="pb-compare-item">
+          <div class="pb-compare-val ${pbBestCls}">${pbBestVal}</div>
+          <div class="pb-compare-lbl">Prev Best SG</div>
+        </div>
+        <div class="pb-compare-item">
+          <div class="pb-compare-val neu">${session.totalMissYards !== undefined ? session.totalMissYards + 'y' : '—'}</div>
+          <div class="pb-compare-lbl">Total Miss</div>
+        </div>
+        <div class="pb-compare-item">
+          <div class="pb-compare-val neu">${session.avgMissYards !== undefined ? session.avgMissYards + 'y' : '—'}</div>
+          <div class="pb-compare-lbl">Avg Miss</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <span class="section-title">Shot by Shot</span>
+      <span class="section-sub">${session.shots.length} shots</span>
+    </div>
+    <div class="shot-list-card">
+      <div class="shot-list-header">
+        <div class="col-hd">#</div>
+        <div class="col-hd">Target</div>
+        <div class="col-hd">Carry</div>
+        <div class="col-hd">Miss</div>
+        <div class="col-hd">SG</div>
+      </div>
+      ${shotRows}
+    </div>
+
+    <a class="cta-btn" href="distance-progress.html">View Progress</a>
+    <a class="secondary-btn" href="distance-home.html">← Back to Tests</a>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>

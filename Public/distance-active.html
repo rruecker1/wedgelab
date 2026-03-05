@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab — Active Test</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body {
+    height: 100%; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    -webkit-text-size-adjust: 100%; overflow: hidden;
+  }
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 22px env(safe-area-inset-bottom, 24px);
+    min-height: 100vh; max-width: 430px; margin: 0 auto;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ── Shared ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 16px; flex-shrink: 0; }
+  .topbar-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .exit-btn { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: var(--muted); border: 1px solid var(--border); padding: 5px 12px; border-radius: 20px; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  .progress-section { flex-shrink: 0; margin-bottom: 16px; }
+  .progress-meta { display: flex; justify-content: space-between; margin-bottom: 7px; }
+  .shot-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .progress-track { height: 3px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 4px; box-shadow: 0 0 8px var(--green); transition: width 0.5s ease; }
+
+  /* ── START SCREEN ── */
+  #screen-start { justify-content: space-between; }
+  .start-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0; padding: 8px 0; }
+  .start-eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .start-distance { font-family: 'Bebas Neue', sans-serif; font-size: 120px; line-height: 1; color: var(--text); }
+  .start-distance .unit { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--muted); vertical-align: super; margin-left: 4px; }
+  .start-sequence { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; margin-top: 10px; margin-bottom: 32px; line-height: 1.8; }
+  .checklist { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; width: 100%; margin-bottom: 24px; text-align: left; }
+  .checklist-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+  .checklist-item:last-child { border-bottom: none; }
+  .check-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .check-dot.warn { background: var(--yellow); }
+  .begin-btn { width: 100%; padding: 22px; background: var(--green); border: none; border-radius: 18px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.12em; cursor: pointer; box-shadow: 0 6px 30px rgba(61,220,132,0.28); -webkit-tap-highlight-color: transparent; flex-shrink: 0; }
+
+  /* ── LISTENING SCREEN ── */
+  #screen-listening { justify-content: space-between; }
+  .target-section { display: flex; flex-direction: column; align-items: center; padding: 8px 0 6px; flex-shrink: 0; }
+  .target-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .target-yardage { font-family: 'Bebas Neue', sans-serif; font-size: 110px; line-height: 1; letter-spacing: 0.02em; color: var(--text); }
+  .target-yardage .unit { font-family: 'DM Mono', monospace; font-size: 17px; color: var(--muted); vertical-align: super; margin-left: 4px; }
+  .next-hint { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.05em; color: var(--muted); margin-top: 4px; }
+
+  .always-on-badge { display: flex; align-items: center; gap: 8px; background: rgba(61,220,132,0.06); border: 1px solid rgba(61,220,132,0.18); border-radius: 30px; padding: 7px 14px; width: fit-content; margin: 8px auto 14px; flex-shrink: 0; }
+  .dot-live { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: livepulse 1.8s ease-in-out infinite; flex-shrink: 0; }
+  @keyframes livepulse { 0%,100% { box-shadow: 0 0 0 0 rgba(61,220,132,0.4); } 50% { box-shadow: 0 0 0 5px rgba(61,220,132,0); } }
+  .always-on-text { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--green); letter-spacing: 0.06em; }
+
+  /* Result card */
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px 16px 14px; margin-bottom: 12px; transition: border-color 0.3s; flex-shrink: 0; }
+  .result-card.has-result { border-color: var(--green-dim); }
+
+  /* Large side-by-side carry vs target */
+  .carry-row { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 12px; }
+  .carry-block { flex: 1; text-align: center; }
+  .carry-num { font-family: 'Bebas Neue', sans-serif; font-size: 72px; line-height: 1; color: var(--text); transition: color 0.3s; }
+  .carry-num.dim { color: var(--border); }
+  .carry-num.exact  { color: var(--green); }
+  .carry-num.close  { color: var(--yellow); }
+  .carry-num.miss   { color: var(--red); }
+  .carry-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+  .carry-divider { width: 1px; height: 60px; background: var(--border); flex-shrink: 0; }
+
+  /* SG result row below the numbers */
+  .sg-result-row { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 10px; margin-bottom: 0; }
+  .sg-result-block { text-align: center; flex: 1; }
+  .sg-result-val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: var(--muted); }
+  .sg-result-val.pos { color: var(--green); }
+  .sg-result-val.neg { color: var(--red); }
+  .sg-result-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .sg-result-divider { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+
+  .manual-row { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; overflow: hidden; }
+  .manual-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; flex-shrink: 0; }
+  .manual-input { flex: 1; min-width: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 7px 10px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .manual-input:focus { border-color: var(--yellow); }
+  .manual-input::placeholder { color: var(--muted); font-size: 11px; }
+  .manual-apply { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px; padding: 7px 14px; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+  .manual-apply:active { border-color: var(--yellow); color: var(--yellow); }
+
+  /* SG running total */
+  .sg-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+  .sg-bar-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .sg-bar-shots { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); }
+  .sg-bar-total { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--green); transition: color 0.3s; }
+
+  /* CTA buttons */
+  .cta-btn { width: 100%; padding: 20px; background: var(--green); border: none; border-radius: 18px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 24px rgba(61,220,132,0.25); -webkit-tap-highlight-color: transparent; flex-shrink: 0; transition: opacity 0.15s; }
+  .cta-btn:active { opacity: 0.85; }
+  .cta-btn .cta-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; opacity: 0.6; display: block; margin-top: 2px; font-weight: 400; }
+  .cta-btn:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; }
+
+  .waiting-hint { text-align: center; margin-top: auto; padding-bottom: 4px; flex-shrink: 0; }
+  .waiting-hint p { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; line-height: 1.8; }
+
+  /* Countdown + back button row */
+  .confirm-row { display: flex; gap: 10px; align-items: stretch; flex-shrink: 0; }
+  .back-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 0 18px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: all 0.2s; white-space: nowrap; }
+  .back-btn:hover { border-color: var(--muted); color: var(--text); }
+  .back-btn:disabled { opacity: 0.3; cursor: default; }
+  .countdown-ring { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .cta-wrap { position: relative; flex: 1; }
+  .cta-btn { width: 100%; padding: 20px; background: var(--green); border: none; border-radius: 16px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 24px rgba(61,220,132,0.25); -webkit-tap-highlight-color: transparent; transition: opacity 0.15s; position: relative; overflow: hidden; }
+  .cta-btn:active { opacity: 0.85; }
+  .cta-btn .cta-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; opacity: 0.6; display: block; margin-top: 2px; font-weight: 400; }
+  .countdown-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: rgba(7,18,9,0.35); border-radius: 0 0 16px 16px; transition: width 0.1s linear; }
+
+  /* Paused badge */
+  .paused-badge { display: flex; align-items: center; gap: 8px; background: rgba(107,133,111,0.06); border: 1px solid rgba(107,133,111,0.2); border-radius: 30px; padding: 7px 14px; width: fit-content; margin: 8px auto 14px; flex-shrink: 0; }
+  .paused-badge-text { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+
+  /* ── END SCREEN ── */
+  #screen-end { justify-content: center; align-items: center; text-align: center; gap: 20px; }
+  .end-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.08em; color: var(--muted); }
+  .end-score { font-family: 'Bebas Neue', sans-serif; font-size: 90px; line-height: 1; }
+  .end-score.pos { color: var(--green); }
+  .end-score.neg { color: var(--red); }
+  .end-score.zero { color: var(--muted); }
+  .end-lbl { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .end-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .end-primary { width: 100%; padding: 18px; background: var(--green); border: none; border-radius: 16px; color: #071209; font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.1em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .end-secondary { width: 100%; padding: 14px; background: none; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  /* Toast */
+  .toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--surface2); border: 1px solid var(--green-dim); color: var(--green); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 10px 20px; border-radius: 30px; transition: transform 0.3s ease; z-index: 100; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+  <!-- ── SCREEN: START ── -->
+  <div class="screen active" id="screen-start">
+    <div class="topbar">
+      <span class="topbar-title" id="start-test-name">Full Wedge Ladder</span>
+      <button class="exit-btn" onclick="exitTest()">✕ Exit</button>
+    </div>
+    <div class="start-hero">
+      <div class="start-eyebrow">First Target Distance</div>
+      <div class="start-distance" id="start-first-dist">40<span class="unit">YDS</span></div>
+      <div class="start-sequence" id="start-sequence"></div>
+      <div class="checklist">
+        <div class="checklist-item"><span class="check-dot"></span>Launch monitor is reading carry distance</div>
+        <div class="checklist-item"><span class="check-dot"></span>iPhone within earshot of launch monitor</div>
+      </div>
+      <button class="begin-btn" onclick="beginTest()">
+        Tap to Begin
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN: LISTENING ── -->
+  <div class="screen" id="screen-listening">
+    <div class="topbar">
+      <span class="topbar-title" id="listen-test-name">Full Wedge Ladder</span>
+      <button class="exit-btn" onclick="exitTest()">✕ Exit</button>
+    </div>
+    <div class="progress-section">
+      <div class="progress-meta">
+        <span class="shot-count" id="shot-label">Shot 1 of 13</span>
+        <span class="shot-count" id="pct-label">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="target-section">
+      <div class="target-label">Target Carry Distance</div>
+      <div class="target-yardage" id="target-yardage">65<span class="unit">YDS</span></div>
+      <div class="next-hint" id="next-hint">Next → 70 yds</div>
+    </div>
+
+    <!-- Mic status badge — swaps between listening/paused -->
+    <div class="always-on-badge" id="listening-badge">
+      <div class="dot-live"></div>
+      <span class="always-on-text">Listening · hit when ready</span>
+    </div>
+    <div class="paused-badge" id="paused-badge" style="display:none;">
+      <span class="paused-badge-text">⏸ Paused · confirm to resume</span>
+    </div>
+
+    <!-- Result card -->
+    <div class="result-card" id="result-card">
+      <!-- Large side-by-side numbers -->
+      <div class="carry-row">
+        <div class="carry-block">
+          <div class="carry-num dim" id="r-carry">—</div>
+          <div class="carry-lbl">Carry (yds)</div>
+        </div>
+        <div class="carry-divider"></div>
+        <div class="carry-block">
+          <div class="carry-num" id="r-target">—</div>
+          <div class="carry-lbl">Target (yds)</div>
+        </div>
+      </div>
+      <!-- SG + miss below -->
+      <div class="sg-result-row">
+        <div class="sg-result-block">
+          <div class="sg-result-val" id="r-sg">—</div>
+          <div class="sg-result-lbl">Strokes Gained</div>
+        </div>
+        <div class="sg-result-divider"></div>
+        <div class="sg-result-block">
+          <div class="sg-result-val" id="r-miss">—</div>
+          <div class="sg-result-lbl">Miss (yds)</div>
+        </div>
+      </div>
+      <div class="manual-row" style="margin-top:10px; border-top: 1px solid var(--border); padding-top:10px;">
+        <span class="manual-label">Manual Entry:</span>
+        <input class="manual-input" id="manual-input" type="number" inputmode="numeric" placeholder="Yards" />
+        <button class="manual-apply" onclick="applyManual()">Apply</button>
+      </div>
+    </div>
+
+    <!-- Running SG total -->
+    <div class="sg-bar">
+      <div>
+        <div class="sg-bar-lbl">Total Strokes Gained</div>
+        <div class="sg-bar-shots" id="sg-shots-label">0 shots recorded</div>
+      </div>
+      <div class="sg-bar-total" id="sg-total">—</div>
+    </div>
+
+    <!-- CTA — swaps between waiting hint and confirm row -->
+    <div style="flex:1;"></div>
+    <div class="confirm-row" id="confirm-row" style="display:none;">
+      <div class="cta-wrap">
+        <button class="cta-btn" id="ready-btn" onclick="confirmShot()">
+          Next Shot — <span id="countdown-display">5</span>
+        </button>
+        <div class="countdown-bar" id="countdown-bar" style="width:100%;"></div>
+      </div>
+    </div>
+    <button class="back-btn" id="back-btn" onclick="goBackShot()" style="display:none; margin-top:10px;">← Previous Shot</button>
+  </div>
+
+  <!-- ── SCREEN: END ── -->
+  <div class="screen" id="screen-end">
+    <div class="topbar" style="width:100%;">
+      <span class="topbar-title" id="end-test-name">Full Wedge Ladder</span>
+      <button class="exit-btn" onclick="goHome()">✕ Done</button>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+      <div class="end-title">Test Complete</div>
+      <div class="end-score" id="end-score">+0.61</div>
+      <div class="end-lbl">Strokes Gained · <span id="end-shots">13</span> shots</div>
+    </div>
+    <div class="end-btns">
+      <button class="end-primary" id="results-btn" onclick="goResults()">View Results</button>
+      <button class="end-secondary" onclick="goHome()">← Back to Tests</button>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+<script src="wedgelab-engine.js"></script>
+<script>
+'use strict';
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+// ── Engine load check ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (typeof WedgeLab === 'undefined') {
+    document.body.innerHTML = '<div style="padding:32px;font-family:monospace;color:#e05252;background:#0e1a12;min-height:100vh;">'+
+      '<h2 style="margin-bottom:12px;">⚠ Engine not loaded</h2>'+
+      '<p>wedgelab-engine.js failed to load or errored on startup.</p>'+
+      '<p style="margin-top:8px;">Check that wedgelab-engine.js is in the same folder as active-test.html in Replit.</p>'+
+      '</div>';
+    return;
+  }
+  console.log('✓ WedgeLab engine loaded:', Object.keys(WedgeLab).join(', '));
+  // Quick sanity check
+  const test = WedgeLab.calcSG(65, 63);
+  console.log('✓ calcSG(65, 63) =', test.sg, '| tourProx:', test.avgProxFt + 'ft | actualFt:', test.actualFt + 'ft');
+});
+
+// ── State ──────────────────────────────────────────────────────
+let session       = null;   // WedgeLab session object
+let shotIndex     = 0;      // current shot index in sequence
+let currentShot   = null;   // last recorded shot result
+let shotConfirmed = true;   // whether current shot has been confirmed
+let recognition   = null;
+let isListening   = false;
+let runningTotal  = 0;
+let countdownTimer   = null;  // interval for auto-advance countdown
+let countdownSeconds = 5;     // auto-advance delay in seconds
+let countdownLeft    = 5;     // remaining seconds
+
+// ── Init — read URL params ─────────────────────────────────────
+const params  = new URLSearchParams(window.location.search);
+const testId  = params.get('test')  || 'full-wedge-ladder';
+const order   = params.get('order') || 'sequential';
+const reps    = parseInt(params.get('reps') || '1');
+
+// Build session — handle custom tests by injecting distances into engine
+async function buildSession() {
+  // Check if this is a custom test (not in built-in TESTS)
+  const isBuiltIn = WedgeLab.TESTS.some(t => t.id === testId);
+  if (!isBuiltIn) {
+    try {
+      const { tests: customTests } = await api('GET', '/api/distance/custom-tests');
+      const customTest  = customTests.find(t => t.id === testId);
+      if (customTest) {
+        // Inject as a temporary test definition so createSession works
+        WedgeLab.TESTS.push(customTest);
+        // For custom tests, sequence is explicit distances
+        // Override getTestSequence behaviour via stored distances
+      }
+    } catch (err) {
+      console.error('Could not load custom test:', err);
+    }
+  }
+  session = WedgeLab.createSession(testId, order, reps);
+  // For custom tests, override sequence with explicit distances (apply order/reps)
+  const customTests = WedgeLab.TESTS.filter(t => t.isCustom);
+  const thisTest = customTests.find(t => t.id === testId);
+  if (thisTest && thisTest.distances) {
+    let seq = [...thisTest.distances];
+    // Apply reps
+    let withReps = [];
+    if (order === 'sequential') {
+      seq.forEach(d => { for (let r = 0; r < reps; r++) withReps.push(d); });
+    } else {
+      seq.forEach(d => { for (let r = 0; r < reps; r++) withReps.push(d); });
+      for (let i = withReps.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [withReps[i], withReps[j]] = [withReps[j], withReps[i]];
+      }
+    }
+    session.sequence = withReps;
+  }
+}
+const test = WedgeLab.TESTS.find(t => t.id === testId);
+
+// Init — build session then populate UI
+buildSession().then(() => {
+  document.getElementById('start-test-name').textContent  = session.testName;
+document.getElementById('listen-test-name').textContent = session.testName;
+document.getElementById('end-test-name').textContent    = session.testName;
+document.getElementById('start-first-dist').innerHTML   =
+  session.sequence[0] + '<span class="unit">YDS</span>';
+const repLabel = reps > 1 ? ` · ${reps} reps each` : '';
+document.getElementById('start-sequence').textContent =
+  (reps === 1
+    ? session.sequence.join(' · ')
+    : [...new Set(session.sequence)].join(' · '))
+  + ' yds' + repLabel;
+}); // end buildSession().then()
+
+// ── Screen management ──────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Begin test — tap to begin ──────────────────────────────────
+function beginTest() {
+  showScreen('screen-listening');
+  document.getElementById('back-btn').style.display = 'block';
+  document.getElementById('back-btn').disabled = true;  // disabled on shot 1
+  renderShotUI();
+  startListening();
+}
+
+// ── Render current shot state ──────────────────────────────────
+function renderShotUI() {
+  const total      = session.sequence.length;
+  const current    = session.sequence[shotIndex];
+  const next       = session.sequence[shotIndex + 1];
+  const pct        = Math.round((shotIndex / total) * 100);
+
+  document.getElementById('shot-label').textContent    = `Shot ${shotIndex + 1} of ${total}`;
+  document.getElementById('pct-label').textContent     = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('target-yardage').innerHTML  = current + '<span class="unit">YDS</span>';
+  document.getElementById('next-hint').textContent     = next ? `Next → ${next} yds` : 'Final shot';
+  document.getElementById('r-target').textContent      = current;
+  document.getElementById('r-target').className        = 'carry-num';
+
+  // If this slot already has a recorded shot (e.g. advancing after going back),
+  // restore its data and show confirm row rather than resetting to waiting state
+  const existing = session.shots[shotIndex];
+  if (existing) {
+    currentShot   = existing;
+    shotConfirmed = false;
+    setResultCard(existing);
+    setListeningState(false);
+  } else {
+    currentShot   = null;
+    shotConfirmed = true;
+    setResultCard(null);
+    setListeningState(true);
+  }
+}
+
+// ── Update result card ─────────────────────────────────────────
+function setResultCard(shot) {
+  const card   = document.getElementById('result-card');
+  const rCarry = document.getElementById('r-carry');
+  const rSG    = document.getElementById('r-sg');
+  const rMiss  = document.getElementById('r-miss');
+
+  // Always show target
+  const target = session.sequence[shotIndex] || session.sequence[session.sequence.length - 1];
+  const rTarget = document.getElementById('r-target');
+  rTarget.textContent = target;
+  rTarget.className   = 'carry-num';
+
+  if (!shot) {
+    // Waiting state — carry blank, target shown
+    card.classList.remove('has-result');
+    rCarry.textContent = '—'; rCarry.className = 'carry-num dim';
+    rSG.textContent    = '—'; rSG.className    = 'sg-result-val';
+    rMiss.textContent  = '—'; rMiss.className  = 'sg-result-val';
+
+    document.getElementById('manual-input').value = '';
+    return;
+  }
+
+  // Populated state
+  card.classList.add('has-result');
+
+  // Carry — green=within 1yd, orange=within 5yds, red=5yds+
+  rCarry.textContent = shot.carryYards;
+  const absMiss = Math.abs(shot.missYards);
+  const carryColour = absMiss <= 1 ? 'exact' : absMiss < 5 ? 'close' : 'miss';
+  rCarry.className   = 'carry-num ' + carryColour;
+
+  // SG
+  rSG.textContent = WedgeLab.formatSG(shot.sg);
+  rSG.className   = 'sg-result-val ' + WedgeLab.sgClass(shot.sg);
+
+  // Miss
+  const missSign = shot.missYards > 0 ? '+' : '';
+  rMiss.textContent = shot.missYards === 0 ? '±0' : missSign + shot.missYards;
+  rMiss.className   = 'sg-result-val ' + (shot.missYards === 0 ? '' : shot.missYards < 0 ? 'neg' : 'pos');
+
+
+}
+
+// ── Toggle listening vs paused UI ─────────────────────────────
+function setListeningState(listening) {
+  document.getElementById('listening-badge').style.display = listening ? 'flex' : 'none';
+  document.getElementById('paused-badge').style.display    = listening ? 'none' : 'flex';
+  document.getElementById('confirm-row').style.display     = listening ? 'none' : 'flex';
+  if (listening) cancelCountdown();
+}
+
+// ── Update running SG total ────────────────────────────────────
+function updateRunningTotal() {
+  const shots = session.shots.length;
+  const total = runningTotal;
+  const el    = document.getElementById('sg-total');
+  el.textContent = shots > 0 ? WedgeLab.formatSG(total) : '—';
+  el.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('sg-shots-label').textContent =
+    shots + (shots === 1 ? ' shot recorded' : ' shots recorded');
+}
+
+// ── Record a carry ─────────────────────────────────────────────
+function recordCarry(carryYards, wasManual) {
+  // (shot array managed by index — no pop needed)
+
+  const target = session.sequence[shotIndex];
+
+  // Build the shot result
+  let newShot;
+  try {
+    const sgResult = WedgeLab.calcSG(target, carryYards);
+    newShot = {
+      id:         WedgeLab.generateId(),
+      shotNumber: shotIndex + 1,
+      targetYards: target,
+      carryYards,
+      wasManual,
+      ...sgResult,
+      recordedAt: new Date().toISOString(),
+    };
+  } catch(err) {
+    console.error('calcSG failed:', err);
+    showToast('Error calculating SG — check console');
+    return;
+  }
+
+  if (typeof newShot.sg !== 'number' || isNaN(newShot.sg)) {
+    console.error('SG is not a number:', newShot);
+    showToast('SG calculation error — check console');
+    return;
+  }
+
+  console.log(`Shot recorded: target=${target} carry=${carryYards} sg=${newShot.sg}`);
+
+  // Replace or insert at shotIndex — keeps array in sync with sequence
+  session.shots[shotIndex] = newShot;
+  currentShot  = newShot;
+
+  // Recompute running total from scratch to stay accurate after back-edits
+  runningTotal = parseFloat(
+    session.shots.reduce((sum, s) => sum + (s ? s.sg : 0), 0).toFixed(3)
+  );
+  shotConfirmed = false;
+
+  // Pause listening
+  if (isListening) pauseListening();
+
+  setResultCard(currentShot);
+  setListeningState(false);
+  updateRunningTotal();
+
+  // (no sub-text on button)
+
+  // Enable back button once first shot is recorded
+  document.getElementById('back-btn').disabled = false;
+
+  showToast(wasManual
+    ? `Manual: ${carryYards} yds`
+    : `Captured: ${carryYards} yds`
+  );
+
+  // Start 5-second auto-advance countdown
+  startCountdown();
+}
+
+// ── Countdown auto-advance ────────────────────────────────────
+function startCountdown() {
+  cancelCountdown();
+  countdownLeft = countdownSeconds;
+  updateCountdownUI();
+
+  countdownTimer = setInterval(() => {
+    countdownLeft--;
+    updateCountdownUI();
+    if (countdownLeft <= 0) confirmShot();
+  }, 1000);
+}
+
+function cancelCountdown() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  countdownLeft = countdownSeconds;
+  updateCountdownUI();
+}
+
+function updateCountdownUI() {
+  const disp = document.getElementById('countdown-display');
+  const bar  = document.getElementById('countdown-bar');
+  if (disp) disp.textContent = countdownLeft;
+  if (bar)  bar.style.width = ((countdownLeft / countdownSeconds) * 100) + '%';
+}
+
+// ── Confirm shot, advance ──────────────────────────────────────
+function confirmShot() {
+  cancelCountdown();
+  if (!session.shots[shotIndex]) return;  // nothing recorded for this slot yet
+  shotConfirmed = true;
+  shotIndex++;
+
+  if (shotIndex >= session.sequence.length) {
+    finishTest();
+    return;
+  }
+
+  renderShotUI();
+  resumeListening();
+}
+
+// ── Go back to previous shot ───────────────────────────────────
+function goBackShot() {
+  if (shotIndex === 0 && session.shots.length === 0) return;
+
+  cancelCountdown();
+
+  // Step shotIndex back — shots array is source of truth, don't pop yet
+  // We only remove a shot from the array when the user re-records over it
+  if (shotIndex > 0) shotIndex--;
+
+  // Load whatever was recorded for this slot (may be undefined if never hit)
+  currentShot   = session.shots[shotIndex] || null;
+  shotConfirmed = false;
+
+  // Re-render UI for this shot's distance
+  const total   = session.sequence.length;
+  const current = session.sequence[shotIndex];
+  const next    = session.sequence[shotIndex + 1];
+  const pct     = Math.round((shotIndex / total) * 100);
+
+  document.getElementById('shot-label').textContent    = `Shot ${shotIndex + 1} of ${total}`;
+  document.getElementById('pct-label').textContent     = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('target-yardage').innerHTML  = current + '<span class="unit">YDS</span>';
+  document.getElementById('next-hint').textContent     = next ? `Next → ${next} yds` : 'Final shot';
+
+  // Show the shot's existing data in the result card
+  setResultCard(currentShot);
+  setListeningState(false);
+
+  document.getElementById('back-btn').disabled = (shotIndex === 0);
+  document.getElementById('back-btn').style.display = 'block';
+
+  updateRunningTotal();
+  showToast(`Back to shot ${shotIndex + 1} · ${current} yds`);
+}
+
+// ── Manual override ────────────────────────────────────────────
+function applyManual() {
+  const input = document.getElementById('manual-input');
+  const val   = parseInt(input.value);
+  if (isNaN(val) || val < 1 || val > 400) {
+    showToast('Enter a valid yardage (1–400)');
+    return;
+  }
+  cancelCountdown();   // reset countdown when user manually overrides
+  input.value = '';
+  input.blur();
+  recordCarry(val, true);
+}
+
+document.getElementById('manual-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyManual();
+});
+
+// ── Finish test ────────────────────────────────────────────────
+async function finishTest() {
+  stopListening();
+  // Filter out any undefined slots before completing (safety check)
+  session.shots = session.shots.filter(s => s !== undefined && s !== null);
+  WedgeLab.completeSession(session);
+
+  // Show saving state on end screen while waiting for Dropbox
+  const scoreEl = document.getElementById('end-score');
+  scoreEl.textContent = WedgeLab.formatSG(session.totalSG);
+  scoreEl.className   = 'end-score ' + WedgeLab.sgClass(session.totalSG);
+  document.getElementById('end-shots').textContent = session.shots.length;
+
+  // Disable results button until save completes
+  const resultsBtn = document.getElementById('results-btn');
+  if (resultsBtn) {
+    resultsBtn.textContent = 'Saving...';
+    resultsBtn.disabled = true;
+  }
+
+  showScreen('screen-end');
+
+  // Save to Dropbox — wait for completion before enabling results button
+  try {
+    await api('POST', '/api/distance/session', session);
+    console.log('Session saved');
+    if (resultsBtn) {
+      resultsBtn.textContent = 'View Results';
+      resultsBtn.disabled = false;
+    }
+  } catch (err) {
+    console.error('Dropbox save failed:', err);
+    if (resultsBtn) {
+      resultsBtn.textContent = 'View Results';
+      resultsBtn.disabled = false;
+    }
+    showToast('⚠ Save failed — check connection');
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function exitTest() {
+  stopListening();
+  if (confirm('Exit test? Progress will not be saved.')) {
+    goHome();
+  } else {
+    if (isListening || shotConfirmed) resumeListening();
+  }
+}
+
+function goHome() {
+  window.location.href = 'distance-home.html';
+}
+
+function goResults() {
+  window.location.href = `distance-post-test.html?session=${session.id}`;
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Voice recognition ──────────────────────────────────────────
+const ones = {
+  'zero':0,'one':1,'two':2,'three':3,'four':4,'five':5,
+  'six':6,'seven':7,'eight':8,'nine':9,'ten':10,
+  'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,
+  'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19
+};
+const tens = {
+  'twenty':20,'thirty':30,'forty':40,'fifty':50,
+  'sixty':60,'seventy':70,'eighty':80,'ninety':90
+};
+
+function wordsToNumber(str) {
+  const direct = parseInt(str.trim());
+  if (!isNaN(direct)) return direct;
+  const words = str.toLowerCase().trim().split(/[\s\-]+/);
+  let total = 0, current = 0;
+  for (const w of words) {
+    if (ones[w] !== undefined)      current += ones[w];
+    else if (tens[w] !== undefined) current += tens[w];
+    else if (w === 'hundred')       current = (current || 1) * 100;
+    else if (w === 'thousand')    { total += (current || 1) * 1000; current = 0; }
+  }
+  return (total + current) || null;
+}
+
+function parseCarry(transcript) {
+  const t = transcript.toLowerCase();
+
+  // Priority 1: Mevo exact phrase "carry is X" (e.g. "Carry is 63.5 yards")
+  let m = t.match(/carry\s+is\s+(\d+(?:\.\d+)?)/i);
+  if (m) { const n = Math.round(parseFloat(m[1])); if (n > 10 && n < 400) return n; }
+
+  // Priority 2: "carry X yards" (digit)
+  m = t.match(/carry\s+(\d+(?:\.\d+)?)\s*yards?/i);
+  if (m) { const n = Math.round(parseFloat(m[1])); if (n > 10 && n < 400) return n; }
+
+  // Priority 3: "carry X yards" (spoken words e.g. "carry sixty three yards")
+  m = t.match(/carry\s+([a-z][a-z\-\s]+?)\s+yards?/i);
+  if (m) { const n = wordsToNumber(m[1]); if (n && n > 10 && n < 400) return n; }
+
+  // Priority 4: "X yards" (digit)
+  m = t.match(/(\d+(?:\.\d+)?)\s*yards?/i);
+  if (m) { const n = Math.round(parseFloat(m[1])); if (n > 10 && n < 400) return n; }
+
+  // Priority 5: spoken words + yards
+  m = t.match(/([a-z][a-z\-\s]+?)\s+yards?/i);
+  if (m) { const n = wordsToNumber(m[1]); if (n && n > 10 && n < 400) return n; }
+
+  // Priority 6: any isolated 2-3 digit number (last resort)
+  m = t.match(/\b(\d{2,3})\b/);
+  if (m) { const n = parseInt(m[1]); if (n > 10 && n < 400) return n; }
+
+  return null;
+}
+
+function setupRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Voice not supported — use manual entry'); return false; }
+
+  recognition = new SR();
+  recognition.lang            = 'en-US';
+  recognition.continuous      = true;
+  recognition.interimResults  = false;
+  recognition.maxAlternatives = 3;
+
+  recognition.onend = () => {
+    if (isListening) {
+      try { recognition.start(); } catch(e) {}
+    }
+  };
+
+  recognition.onerror = e => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    if (e.error === 'not-allowed') showToast('Mic permission denied — use manual entry');
+  };
+
+  recognition.onresult = e => {
+    // Only capture if we're in listening state (not paused awaiting confirm)
+    if (!isListening || !shotConfirmed) return;
+
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      for (let a = 0; a < e.results[i].length; a++) {
+        const yards = parseCarry(e.results[i][a].transcript);
+        if (yards) { recordCarry(yards, false); return; }
+      }
+    }
+  };
+
+  return true;
+}
+
+function startListening() {
+  if (!recognition && !setupRecognition()) return;
+  isListening = true;
+  shotConfirmed = true;
+  try { recognition.start(); } catch(e) {}
+}
+
+function pauseListening() {
+  isListening = false;
+}
+
+function resumeListening() {
+  isListening = true;
+  shotConfirmed = true;
+  // Recognition keeps running (continuous) — just re-enable capture via flag
+}
+
+function stopListening() {
+  isListening = false;
+  shotConfirmed = false;
+  try { recognition.stop(); } catch(e) {}
+}
+</script>
+</body>
+</html>

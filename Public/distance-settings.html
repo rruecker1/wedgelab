@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab — Settings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e1a12; --surface: #162019; --surface2: #1e2d22;
+    --green: #3ddc84; --green-dim: #2a9e5e; --yellow: #f5c842;
+    --red: #e05252; --text: #e8f0ea; --muted: #6b856f; --border: #263329;
+  }
+  html, body {
+    min-height: 100%; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 22px env(safe-area-inset-bottom, 32px);
+    max-width: 430px; margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header { padding: 12px 0 20px; }
+  .app-sub    { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+  .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; letter-spacing: 0.04em; }
+
+  /* ── Section ── */
+  .section-head { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; margin-top: 24px; }
+
+  /* ── Form card ── */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 12px; }
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; display: block; }
+  .field-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; padding: 11px 14px; outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .field-input:focus { border-color: var(--green-dim); }
+  .field-input::placeholder { color: var(--muted); font-size: 13px; }
+
+  /* Increment toggle */
+  .increment-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; }
+  .inc-btn {
+    flex: 1; padding: 9px 4px; border-radius: 8px; border: none;
+    background: none; color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.05em; cursor: pointer;
+    transition: all 0.18s; -webkit-tap-highlight-color: transparent; text-align: center;
+  }
+  .inc-btn.active { background: var(--surface); color: var(--green); outline: 1px solid var(--green-dim); }
+
+  /* Range inputs row */
+  .range-row { display: flex; gap: 10px; }
+  .range-row .field { flex: 1; margin-bottom: 0; }
+
+  /* Custom distances input */
+  .custom-distances-wrap { display: none; }
+  .custom-distances-wrap.visible { display: block; }
+  .dist-tag-input { display: flex; gap: 8px; margin-bottom: 8px; }
+  .dist-tag-input input { flex: 1; }
+  .dist-tag-input button {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 0 14px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s;
+  }
+  .dist-tag-input button:active { border-color: var(--green-dim); color: var(--green); }
+  .dist-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+  .dist-tag {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.04em;
+    background: var(--surface2); border: 1px solid var(--green-dim);
+    color: var(--green); border-radius: 20px; padding: 4px 10px;
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .dist-tag .remove { color: var(--muted); font-size: 12px; line-height: 1; }
+
+  /* Preview */
+  .preview-wrap { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .preview-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; margin-bottom: 7px; }
+  .preview-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .preview-pill { font-family: 'DM Mono', monospace; font-size: 9px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 3px 8px; }
+  .preview-empty { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+  /* Save button */
+  .save-btn {
+    width: 100%; padding: 18px; background: var(--green); border: none;
+    border-radius: 16px; color: #071209; font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px; letter-spacing: 0.1em; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(61,220,132,0.22);
+    -webkit-tap-highlight-color: transparent; margin-bottom: 14px;
+    transition: opacity 0.15s;
+  }
+  .save-btn:active { opacity: 0.85; }
+  .save-btn:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; cursor: default; }
+
+  /* Status message */
+  .status-msg { font-family: 'DM Mono', monospace; font-size: 10px; text-align: center; min-height: 20px; margin-bottom: 8px; }
+  .status-msg.ok  { color: var(--green); }
+  .status-msg.err { color: var(--red); }
+
+  /* Existing custom tests */
+  .test-row { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .test-row-info { flex: 1; min-width: 0; }
+  .test-row-name { font-size: 14px; font-weight: 600; }
+  .test-row-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .delete-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 9px; padding: 5px 10px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+  .delete-btn:active { border-color: var(--red); color: var(--red); }
+  .restore-btn { background: none; border: 1px solid var(--green-dim); border-radius: 8px; color: var(--green); font-family: 'DM Mono', monospace; font-size: 9px; padding: 5px 10px; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; transition: all 0.2s; }
+  .test-row.hidden-test { opacity: 0.45; }
+
+  .empty-custom { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-align: center; padding: 20px 0; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 8px; margin-top: auto; padding-top: 20px; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 6px 0; border-radius: 12px; transition: background 0.18s; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .nav-item.active { background: var(--surface2); }
+  .nav-icon  { font-size: 17px; line-height: 1; color: var(--text); }
+  .nav-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item.active .nav-label { color: var(--green); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="app-sub">Wedge Lab</div>
+    <div class="page-title">Settings</div>
+  </div>
+
+  <!-- New test form -->
+  <div class="section-head">Create Custom Test</div>
+  <div class="form-card">
+
+    <!-- Name -->
+    <div class="field">
+      <label class="field-label">Test Name</label>
+      <input class="field-input" id="test-name" type="text" placeholder="e.g. Scoring Zone" maxlength="40" oninput="updatePreview()" />
+    </div>
+
+    <!-- Increment -->
+    <div class="field">
+      <label class="field-label">Increment</label>
+      <div class="increment-toggle">
+        <button class="inc-btn active" data-inc="5"      onclick="setIncrement(5)">5 yards</button>
+        <button class="inc-btn"        data-inc="10"     onclick="setIncrement(10)">10 yards</button>
+        <button class="inc-btn"        data-inc="custom" onclick="setIncrement('custom')">Custom</button>
+      </div>
+    </div>
+
+    <!-- From / To (shown for 5 and 10 yd increments) -->
+    <div class="field" id="range-fields">
+      <label class="field-label">Distance Range (yards)</label>
+      <div class="range-row">
+        <div class="field">
+          <input class="field-input" id="from-yards" type="number" inputmode="numeric" placeholder="From" min="10" max="300" oninput="updatePreview()" />
+        </div>
+        <div class="field">
+          <input class="field-input" id="to-yards" type="number" inputmode="numeric" placeholder="To" min="10" max="300" oninput="updatePreview()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom distances (shown for custom increment) -->
+    <div class="field custom-distances-wrap" id="custom-distances-wrap">
+      <label class="field-label">Distances (yards)</label>
+      <div class="dist-tag-input">
+        <input class="field-input" id="custom-dist-input" type="number" inputmode="numeric" placeholder="Enter yards" min="10" max="300" />
+        <button onclick="addCustomDist()">Add</button>
+      </div>
+      <div class="dist-tags" id="dist-tags"></div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-wrap">
+      <div class="preview-label">Shot Sequence Preview</div>
+      <div class="preview-pills" id="preview-pills">
+        <span class="preview-empty">Fill in the fields above</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+  <button class="save-btn" id="save-btn" onclick="saveTest()" disabled>Save Test</button>
+
+  <!-- Built-in tests -->
+  <div class="section-head">Built-in Tests</div>
+  <div id="builtin-test-list"></div>
+
+  <!-- Custom tests -->
+  <div class="section-head">Your Custom Tests</div>
+  <div id="custom-test-list"><div class="empty-custom">No custom tests yet</div></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <div class="nav-icon">↩</div>
+      <div class="nav-label">WedgeLab</div>
+    </a>
+    <a class="nav-item" href="distance-home.html">
+      <div class="nav-icon">⛳</div>
+      <div class="nav-label">Practice</div>
+    </a>
+    <a class="nav-item" href="distance-progress.html">
+      <div class="nav-icon">📊</div>
+      <div class="nav-label">Stats</div>
+    </a>
+    <a class="nav-item active" href="distance-settings.html">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Settings</div>
+    </a>
+  </div>
+
+<script src="wedgelab-engine.js"></script>
+<script>
+'use strict';
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status}`);
+  return res.json();
+}
+
+let currentIncrement = 5;
+let customDistances  = [];
+let customTests      = [];
+let hiddenTests      = [];
+
+async function init() {
+  try {
+    const [customRes, hiddenRes] = await Promise.all([
+      api('GET', '/api/distance/custom-tests'),
+      api('GET', '/api/distance/hidden-tests'),
+    ]);
+    customTests = customRes.tests  || [];
+    hiddenTests = hiddenRes.hidden || [];
+  } catch (err) {
+    console.error('Failed to load tests:', err);
+  }
+  renderCustomTests();
+  renderBuiltInTests();
+}
+
+// ── Increment mode ─────────────────────────────────────────────
+function setIncrement(inc) {
+  currentIncrement = inc;
+  document.querySelectorAll('.inc-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.inc === String(inc));
+  });
+  document.getElementById('range-fields').style.display        = inc === 'custom' ? 'none' : 'block';
+  document.getElementById('custom-distances-wrap').classList.toggle('visible', inc === 'custom');
+  updatePreview();
+}
+
+// ── Custom distance tags ───────────────────────────────────────
+function addCustomDist() {
+  const input = document.getElementById('custom-dist-input');
+  const val   = parseInt(input.value);
+  if (isNaN(val) || val < 10 || val > 300) return;
+  if (customDistances.includes(val)) { input.value = ''; return; }
+  customDistances.push(val);
+  customDistances.sort((a, b) => a - b);
+  input.value = '';
+  renderDistTags();
+  updatePreview();
+}
+
+document.getElementById('custom-dist-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCustomDist();
+});
+
+function removeCustomDist(val) {
+  customDistances = customDistances.filter(d => d !== val);
+  renderDistTags();
+  updatePreview();
+}
+
+function renderDistTags() {
+  document.getElementById('dist-tags').innerHTML = customDistances.map(d =>
+    `<div class="dist-tag" onclick="removeCustomDist(${d})">
+      ${d}y <span class="remove">✕</span>
+    </div>`
+  ).join('');
+}
+
+// ── Build sequence from current form state ─────────────────────
+function buildSequence() {
+  if (currentIncrement === 'custom') {
+    return [...customDistances];
+  }
+  const from = parseInt(document.getElementById('from-yards').value);
+  const to   = parseInt(document.getElementById('to-yards').value);
+  if (isNaN(from) || isNaN(to) || from >= to || from < 10 || to > 300) return [];
+  const seq = [];
+  for (let d = from; d <= to; d += currentIncrement) seq.push(d);
+  return seq;
+}
+
+// ── Preview ────────────────────────────────────────────────────
+function updatePreview() {
+  const seq     = buildSequence();
+  const pillsEl = document.getElementById('preview-pills');
+  const saveBtn = document.getElementById('save-btn');
+  const name    = document.getElementById('test-name').value.trim();
+
+  if (!seq.length) {
+    pillsEl.innerHTML = '<span class="preview-empty">Fill in the fields above</span>';
+    saveBtn.disabled  = true;
+    return;
+  }
+
+  // Show first 8 + overflow count
+  const visible  = seq.slice(0, 8);
+  const overflow = seq.length - visible.length;
+  pillsEl.innerHTML =
+    visible.map(d => `<span class="preview-pill">${d}y</span>`).join('') +
+    (overflow > 0 ? `<span class="preview-pill">+${overflow}</span>` : '');
+
+  saveBtn.disabled = !name || seq.length < 2;
+}
+
+// ── Save test to Dropbox ───────────────────────────────────────
+async function saveTest() {
+  const name = document.getElementById('test-name').value.trim();
+  const seq  = buildSequence();
+
+  if (!name || seq.length < 2) return;
+
+  const newTest = {
+    id:        'custom_' + WedgeLab.generateId(),
+    name,
+    fromYards: seq[0],
+    toYards:   seq[seq.length - 1],
+    increment: currentIncrement === 'custom' ? 0 : currentIncrement,
+    distances: seq,   // always store explicit distances
+    isCustom:  true,
+  };
+
+  const saveBtn = document.getElementById('save-btn');
+  const statusEl = document.getElementById('status-msg');
+  saveBtn.disabled = true;
+  statusEl.textContent = 'Saving...';
+  statusEl.className   = 'status-msg';
+
+  try {
+    customTests.push(newTest);
+    await api('POST', '/api/distance/custom-tests', { tests: customTests });
+    statusEl.textContent = '✓ Test saved';
+    statusEl.className   = 'status-msg ok';
+    resetForm();
+    renderCustomTests();
+  } catch (err) {
+    console.error('Save failed:', err);
+    customTests.pop();  // roll back
+    statusEl.textContent = '✗ Save failed — check connection';
+    statusEl.className   = 'status-msg err';
+    saveBtn.disabled = false;
+  }
+}
+
+// ── Delete custom test ─────────────────────────────────────────
+async function deleteTest(id) {
+  if (!confirm('Delete this test? This cannot be undone.')) return;
+  customTests = customTests.filter(t => t.id !== id);
+  try {
+    await api('POST', '/api/distance/custom-tests', { tests: customTests });
+    renderCustomTests();
+  } catch (err) {
+    console.error('Delete failed:', err);
+  }
+}
+
+// ── Render built-in tests ─────────────────────────────────────
+function renderBuiltInTests() {
+  const el = document.getElementById('builtin-test-list');
+  el.innerHTML = WedgeLab.TESTS.map(t => {
+    const isHidden = hiddenTests.includes(t.id);
+    const shotCount = WedgeLab.getTestShotCount(t.id);
+    return `
+      <div class="test-row ${isHidden ? 'hidden-test' : ''}">
+        <div class="test-row-info">
+          <div class="test-row-name">${t.name} ${isHidden ? '<span style="font-size:10px;color:var(--muted);">(hidden)</span>' : ''}</div>
+          <div class="test-row-meta">${shotCount} shots · ${t.fromYards}–${t.toYards} yds · 5yd increments</div>
+        </div>
+        ${isHidden
+          ? `<button class="restore-btn" onclick="toggleBuiltIn('${t.id}', false)">Restore</button>`
+          : `<button class="delete-btn"  onclick="toggleBuiltIn('${t.id}', true)">Hide</button>`
+        }
+      </div>`;
+  }).join('');
+}
+
+async function toggleBuiltIn(testId, hide) {
+  if (hide) {
+    if (!hiddenTests.includes(testId)) hiddenTests.push(testId);
+  } else {
+    hiddenTests = hiddenTests.filter(id => id !== testId);
+  }
+  try {
+    await api('POST', '/api/distance/hidden-tests', { hidden: hiddenTests });
+    renderBuiltInTests();
+  } catch (err) {
+    console.error('Failed to update hidden tests:', err);
+  }
+}
+
+// ── Render existing custom tests ───────────────────────────────
+function renderCustomTests() {
+  const el = document.getElementById('custom-test-list');
+  if (!customTests.length) {
+    el.innerHTML = '<div class="empty-custom">No custom tests yet</div>';
+    return;
+  }
+  el.innerHTML = customTests.map(t => `
+    <div class="test-row">
+      <div class="test-row-info">
+        <div class="test-row-name">${t.name}</div>
+        <div class="test-row-meta">${t.distances.length} shots · ${t.distances[0]}–${t.distances[t.distances.length-1]} yds · ${t.increment === 0 ? 'custom' : t.increment + 'yd'} increments</div>
+      </div>
+      <button class="delete-btn" onclick="deleteTest('${t.id}')">Delete</button>
+    </div>`).join('');
+}
+
+// ── Reset form ─────────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('test-name').value    = '';
+  document.getElementById('from-yards').value   = '';
+  document.getElementById('to-yards').value     = '';
+  document.getElementById('custom-dist-input').value = '';
+  customDistances = [];
+  renderDistTags();
+  setIncrement(5);
+  updatePreview();
+  setTimeout(() => {
+    document.getElementById('status-msg').textContent = '';
+  }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

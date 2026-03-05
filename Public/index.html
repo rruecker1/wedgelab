@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wedge Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e1a12;
+    --surface: #162019;
+    --surface2: #1e2d22;
+    --green: #3ddc84;
+    --green-dim: #2a9e5e;
+    --yellow: #f5c842;
+    --red: #e05252;
+    --text: #e8f0ea;
+    --muted: #6b856f;
+    --border: #263329;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 20px) 22px env(safe-area-inset-bottom, 40px);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 16px 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .app-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .app-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  .app-name span {
+    color: var(--green);
+  }
+  .app-tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* ── App cards ── */
+  .app-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 40px;
+    flex: 1;
+  }
+
+  .app-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+  .app-card:active {
+    transform: scale(0.985);
+  }
+
+  /* Accent bar */
+  .app-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 24px 24px 0 0;
+  }
+  .app-card.green::before  { background: var(--green); }
+  .app-card.yellow::before { background: var(--yellow); }
+
+  /* Ambient glow */
+  .app-card::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 0; right: 0;
+    height: 60px;
+    border-radius: 24px 24px 0 0;
+    pointer-events: none;
+  }
+  .app-card.green::after  { background: linear-gradient(to bottom, rgba(61,220,132,0.06), transparent); }
+  .app-card.yellow::after { background: linear-gradient(to bottom, rgba(245,200,66,0.06), transparent); }
+
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    display: block;
+    line-height: 1;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .app-card.green  .card-title { color: var(--green); }
+  .app-card.yellow .card-title { color: var(--yellow); }
+
+  .card-arrow {
+    font-size: 18px;
+    color: var(--muted);
+    margin-top: 4px;
+    transition: transform 0.2s;
+  }
+  .app-card:active .card-arrow { transform: translateX(4px); }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  /* Stat pills row */
+  .card-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .app-card.green  .pill { border-color: rgba(61,220,132,0.2);  color: rgba(61,220,132,0.7); }
+  .app-card.yellow .pill { border-color: rgba(245,200,66,0.2); color: rgba(245,200,66,0.7); }
+
+  /* ── Stats strip ── */
+  .stats-strip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 14px 8px;
+    position: relative;
+  }
+  .stat-item + .stat-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 1px;
+    background: var(--border);
+  }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-val.green  { color: var(--green); }
+  .stat-val.yellow { color: var(--yellow); }
+  .stat-val.muted  { color: var(--muted); }
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    padding-bottom: 8px;
+  }
+
+  /* ── Loading state ── */
+  .loading-dot {
+    display: inline-block;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="app-eyebrow">Practice Smarter</div>
+    <div class="app-name">Wedge<span>Lab</span></div>
+    <div class="app-tagline">Your complete short game training system</div>
+  </div>
+
+  <div class="section-label">Choose a Training Mode</div>
+
+  <div class="app-cards">
+
+    <a class="app-card green" href="distance-home.html">
+      <span class="card-icon">📏</span>
+      <div class="card-top">
+        <div class="card-title">Distance Control</div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card-desc">Hit to targets from 40–150 yards. Track strokes gained vs PGA Tour averages and measure your dispersion over time.</div>
+      <div class="card-pills">
+        <span class="pill">Strokes Gained</span>
+        <span class="pill">40–150 Yards</span>
+        <span class="pill">Custom Tests</span>
+      </div>
+    </a>
+
+    <a class="app-card yellow" href="challenge-setup.html">
+      <span class="card-icon">⛳</span>
+      <div class="card-top">
+        <div class="card-title">Short Game</div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card-desc">Chips, pitches, and bunker shots. Track up‑and‑down percentage, proximity, and miss tendencies vs Tour benchmarks.</div>
+      <div class="card-pills">
+        <span class="pill">Up & Down %</span>
+        <span class="pill">Miss Heatmap</span>
+        <span class="pill">Tour Benchmarks</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="section-label">Combined Stats</div>
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="stat-val green" id="stat-sg">—</div>
+      <div class="stat-lbl">Best SG</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val yellow" id="stat-ud">—</div>
+      <div class="stat-lbl">Best U&D%</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="stat-sessions">—</div>
+      <div class="stat-lbl">Sessions</div>
+    </div>
+  </div>
+
+
+
+<script>
+'use strict';
+
+async function loadStats() {
+  try {
+    const [distRes, sgRes] = await Promise.all([
+      fetch('/api/distance/history').then(r => r.json()).catch(() => ({ sessions: [] })),
+      fetch('/api/shortgame/history').then(r => r.json()).catch(() => ({ rounds: [] })),
+    ]);
+
+    const sessions = distRes.sessions || [];
+    const rounds   = sgRes.rounds    || [];
+
+    // Best SG
+    if (sessions.length) {
+      const bestSG = Math.max(...sessions.map(s => s.totalSG));
+      const sgEl   = document.getElementById('stat-sg');
+      sgEl.textContent = (bestSG >= 0 ? '+' : '') + bestSG.toFixed(2);
+      sgEl.className   = 'stat-val ' + (bestSG >= 0 ? 'green' : 'red');
+    }
+
+    // Best U&D %
+    if (rounds.length) {
+      const bestUD = Math.max(...rounds.map(r => r.up_and_down_pct));
+      document.getElementById('stat-ud').textContent = bestUD + '%';
+    }
+
+    // Total sessions
+    const total = sessions.length + rounds.length;
+    if (total > 0) {
+      document.getElementById('stat-sessions').textContent = total;
+    }
+
+  } catch (err) {
+    console.error('Stats load failed:', err);
+  }
+}
+
+loadStats();
+</script>
+</body>
+</html>
